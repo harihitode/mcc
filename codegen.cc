@@ -11,6 +11,7 @@
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/ValueSymbolTable.h>
 #include <llvm/IR/IRBuilder.h>
+#include <llvm/Support/raw_ostream.h>
 
 using llvm::Value;
 using llvm::Function;
@@ -88,7 +89,8 @@ namespace {
             return llvm::Type::getFloatTy(context);
         } else if (std::get_if<sptr<type::array>>(&t)) {
             auto elem_t = std::get<sptr<type::array>>(t);
-            return llvm::PointerType::getUnqual(convert_type(elem_t->value));
+            // return llvm::PointerType::getUnqual(convert_type(elem_t->value));
+            return llvm::ArrayType::get(convert_type(elem_t->value), 10);
         } else if (std::get_if<sptr<type::tuple>>(&t)) {
             auto tuple = std::get<sptr<type::tuple>>(t);
             std::vector<Type *> ts;
@@ -306,8 +308,14 @@ namespace {
             return pass(builder, module, function)(std::get<2>(e->value));
         }
         result_type operator() (const sptr<closure::get> & e) {
-            Value * arr = pass(builder, module, function)(std::get<0>(e->value));
-            Value * idx = pass(builder, module, function)(std::get<1>(e->value));
+            // Value * arr = pass(builder, module, function)(std::get<0>(e->value));
+            printf("test\n");
+            Value * arr = module->getGlobalVariable(std::get<0>(std::get<0>(e->value)->value));
+            arr->getType()->print(llvm::outs(), false); putchar('\n');
+            Value * arr_idx = pass(builder, module, function)(std::get<1>(e->value));
+            std::vector<Value *> idx = {llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0),
+                                        arr_idx};
+            //llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), i++)};
             Value * ptr = builder->CreateGEP(arr, idx, "ptr_tmp");
             return builder->CreateLoad(ptr, "var_tmp");
         }
@@ -524,7 +532,6 @@ struct prototype_pass {
 
     result_type operator()(const std::shared_ptr<closure::global> & g) {
         auto ident = std::get<0>(g->value);
-        // auto v = module->getOrInsertGlobal(std::get<0>(ident->value), convert_type(std::get<1>(ident->value)));
         new llvm::GlobalVariable(*module, convert_type(std::get<1>(ident->value)),
                                  false, llvm::GlobalValue::ExternalLinkage,
                                  llvm::Constant::getNullValue(convert_type(std::get<1>(ident->value))),
