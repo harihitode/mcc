@@ -8,7 +8,7 @@ OPTIONS = `$(LLVMDIR)/bin/llvm-config --cflags --ldflags`
 TFLAGS = -I `$(LLVMDIR)/bin/llvm-config --includedir`
 OBJS = main.o id.o idrel.o typing.o knormal.o alpha.o closure.o codegen.o
 
-normal: $(OBJS) printer.h ast.h typing.h knormal.h alpha.h beta.h closure.h
+normal: $(OBJS) printer.h ast.h typing.h knormal.h alpha.h closure.h
 	$(CXX) $(CXXFLAGS) $(OPTIONS) $(LIBS) $(OBJS) parser.o -o mcc
 all: $(OBJS) printer.h ast.h typing.h parser.o
 	$(CXX) $(CXXFLAGS) $(OPTIONS) $(LIBS) $(OBJS) parser.o -o mcc
