@@ -7,6 +7,12 @@
 #include "typing.h"
 #include "printer.h"
 
+namespace mcc {
+    namespace closure {
+        using known_t = std::unordered_set<std::shared_ptr<identifier>>;
+    }
+}
+
 namespace {
     using namespace mcc;
     using namespace mcc::closure;
@@ -196,7 +202,7 @@ namespace {
             } else {
                 ret = e2_;
             }
-            toplevel.emplace_back(make_shared<function>(make_tuple(ident, yts, std::move(zts), e1_)));
+            toplevel.emplace_back(make_shared<global_rec>(make_tuple(ident, yts, std::move(zts), e1_)));
             return ret;
         }
 
@@ -234,7 +240,7 @@ namespace {
             auto && ident = std::get<0>(e->value);
             auto && t = std::get<1>(ident->value); // type
             auto && yts = std::get<1>(e->value); // args
-            auto && e1 = std::get<2>(e->value); // fun body
+            auto && e1 = std::get<3>(e->value); // fun body
             known_t fv_body;
             known_t fn_body;
             // try as non-closure
@@ -277,7 +283,7 @@ namespace {
             } else {
                 ret = value::get_const_unit();
             }
-            toplevel.emplace_back(make_shared<function>(make_tuple(ident, yts, std::move(zts), e1_)));
+            toplevel.emplace_back(make_shared<global_rec>(make_tuple(ident, yts, std::move(zts), e1_)));
             return ret;
         }
 

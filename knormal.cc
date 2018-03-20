@@ -269,6 +269,7 @@ namespace {
             auto && body = pass()(std::move(std::get<2>(ast->value)));
             return make_shared<global_rec>(make_tuple(name,
                                                       std::move(yts),
+                                                      std::vector<std::shared_ptr<identifier>>{ },
                                                       std::move(std::get<0>(body))));
         }
 

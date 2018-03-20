@@ -94,7 +94,12 @@ namespace {
                           [&] (auto & arg) {
                               std::get<0>(arg->value) = id::genid(std::get<0>(arg->value));
                           });
-            std::visit(pass(), std::get<2>(e->value));
+            std::for_each(std::get<2>(e->value).begin(),
+                          std::get<2>(e->value).end(),
+                          [&] (auto & arg) {
+                              std::get<0>(arg->value) = id::genid(std::get<0>(arg->value));
+                          });
+            std::visit(pass(), std::get<3>(e->value));
         }
 
         template <typename T>

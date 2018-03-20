@@ -528,7 +528,7 @@ namespace mcc {
         struct global_tuple : base<std::tuple<std::vector<sptr<identifier>>, ast>> {
             explicit global_tuple(type && v) : base(std::move(v)) { }
         };
-        struct global_rec : base<std::tuple<sptr<identifier>, std::vector<sptr<identifier>>, ast>> {
+        struct global_rec : base<std::tuple<sptr<identifier>, std::vector<sptr<identifier>>, std::vector<sptr<identifier>>, ast>> {
             explicit global_rec(type && v) : base(std::move(v)) { }
         };
         using toplevel_t = std::variant<ast,
@@ -565,22 +565,11 @@ namespace mcc {
 
         using knormal::ast;
 
-        using known_t = std::unordered_set<std::shared_ptr<identifier>>;
+        using knormal::global;
+        using knormal::global_tuple;
+        using knormal::global_rec;
 
-        struct global : base<std::tuple<sptr<identifier>, ast>> {
-            explicit global(type && v) : base(std::move(v)) { }
-        };
-        struct global_tuple : base<std::tuple<std::vector<sptr<identifier>>, ast>> {
-            explicit global_tuple(type && v) : base(std::move(v)) { }
-        };
-        struct function : base<std::tuple<sptr<identifier>, std::vector<sptr<identifier>>, std::vector<sptr<identifier>>, ast>> {
-            explicit function(type && v) : base(std::move(v)) { }
-        };
-        using toplevel_t = std::variant<ast,
-                                        std::shared_ptr<external>,
-                                        std::shared_ptr<function>,
-                                        std::shared_ptr<global>,
-                                        std::shared_ptr<global_tuple>>;
+        using knormal::toplevel_t;
 
     }
 

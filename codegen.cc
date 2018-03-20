@@ -410,7 +410,7 @@ namespace {
                                       id_name,
                                       module);
     }
-    void create_function_definition(const std::shared_ptr<closure::function> & f, Module * module, IRBuilder<> * builder) {
+    void create_function_definition(const std::shared_ptr<closure::global_rec> & f, Module * module, IRBuilder<> * builder) {
         auto && fun_name = std::get<0>(std::get<0>(f->value)->value);
         // printf("function def: %s\n", fun_name.c_str());
         auto fun_type = std::get<sptr<type::function>>(unwrap(std::get<1>(std::get<0>(f->value)->value)));
@@ -518,7 +518,7 @@ struct prototype_pass {
         }
     }
 
-    result_type operator()(const std::shared_ptr<closure::function> & f) {
+    result_type operator()(const std::shared_ptr<closure::global_rec> & f) {
         create_function_prototype(std::get<0>(f->value), module);
     }
 
@@ -552,7 +552,7 @@ struct definition_pass {
     template <typename T>
     result_type operator()(T) { }
 
-    result_type operator()(const std::shared_ptr<closure::function> & f) {
+    result_type operator()(const std::shared_ptr<closure::global_rec> & f) {
         create_function_definition(f, module, builder);
     }
 

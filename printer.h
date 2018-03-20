@@ -306,23 +306,6 @@ namespace mcc {
                 std::cerr << "]";
             }
 
-            // closure
-            result_type operator() (const closure::toplevel_t & ast) const {
-                std::visit(printer(), ast);
-            }
-
-            result_type operator() (const sptr<closure::global> & ast) const {
-                std::cerr << "[let(global) ";
-                for_each_tuple(ast->value, printer());
-                std::cerr << "]";
-            }
-
-            result_type operator() (const sptr<closure::global_tuple> & ast) const {
-                std::cerr << "[let_tuple(global) ";
-                for_each_tuple(ast->value, printer());
-                std::cerr << "]";
-            }
-
         };
 
     }
