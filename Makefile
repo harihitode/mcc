@@ -3,7 +3,7 @@ CXX = clang++
 LLVMDIR = ../llvm/build
 TBLGEN = $(LLVMDIR)/bin/llvm-tblgen
 CXXFLAGS = -std=c++1z `$(LLVMDIR)/bin/llvm-config --cflags` -resource-dir ~/ -fvisibility=hidden -O3
-LIBS = `$(LLVMDIR)/bin/llvm-config --libs --system-libs`
+LIBS = `$(LLVMDIR)/bin/llvm-config --libs --system-libs` -lc++experimental
 OPTIONS = `$(LLVMDIR)/bin/llvm-config --cflags --ldflags`
 TFLAGS = -I `$(LLVMDIR)/bin/llvm-config --includedir`
 OBJS = main.o id.o idrel.o typing.o knormal.o alpha.o closure.o codegen.o
