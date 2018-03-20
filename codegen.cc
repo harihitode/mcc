@@ -268,13 +268,13 @@ namespace {
             // ts is struct of {function_address, args...}
             std::vector<Type *> ts;
             std::deque<Value *> vs;
-            auto && closure_t = std::get<1>(e->value);
-            auto && ident = std::get<0>(closure_t);
+            auto && ident = std::get<0>(e->value);
+            auto && free_var = std::get<1>(e->value);
             auto && function_type = module->getFunction(std::get<0>(ident->value))->getFunctionType();
             // for function address
             ts.push_back(llvm::PointerType::getUnqual(function_type));
             // for free variables
-            std::transform(std::get<1>(closure_t).begin(), std::get<1>(closure_t).end(), std::back_inserter(vs), pass(builder, module, function));
+            std::transform(free_var.begin(), free_var.end(), std::back_inserter(vs), pass(builder, module, function));
             std::transform(vs.begin(), vs.end(), std::back_inserter(ts), [] (auto & n) { return n->getType(); });
             // for function address
             vs.push_front(module->getFunction(std::get<0>(ident->value)));

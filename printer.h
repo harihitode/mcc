@@ -316,12 +316,6 @@ namespace mcc {
                 std::visit(printer(), e);
             }
 
-            result_type operator() (const closure::closure_t & e) const {
-                std::cerr << "[cls ";
-                for_each_tuple(e, printer());
-                std::cerr << ']';
-            }
-
             result_type operator() (const sptr<closure::make_cls> & e) const {
                 std::cerr << "[make_cls ";
                 for_each_tuple(e->value, printer());

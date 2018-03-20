@@ -186,7 +186,7 @@ namespace {
                 fprintf(stderr, "\n");
                 ++num_closures;
                 auto && cls = make_shared<make_cls>(make_tuple(ident,
-                                                               make_tuple(ident, std::vector<std::shared_ptr<identifier>>(fv_body.cbegin(), fv_body.cend())),
+                                                               std::vector<std::shared_ptr<identifier>>(fv_body.cbegin(), fv_body.cend()),
                                                                e2_));
                 std::copy(fv_body.begin(), fv_body.end(), std::inserter(free_variable, free_variable.end())); // union fv_body & free_variable
                 std::copy(fn_body.begin(), fn_body.end(), std::inserter(callee_func, callee_func.end()));
@@ -266,7 +266,7 @@ namespace {
                 // see code/closure.ml
                 std::get<std::shared_ptr<type::function>>(unwrap(t))->is_closure = true;
                 auto && cls = make_shared<make_cls>(make_tuple(ident,
-                                                               make_tuple(ident, std::vector<std::shared_ptr<identifier>>(fv_body.cbegin(), fv_body.cend())),
+                                                               std::vector<std::shared_ptr<identifier>>(fv_body.cbegin(), fv_body.cend()),
                                                                value::get_const_unit()));
                 std::copy(fv_body.begin(), fv_body.end(), std::inserter(free_variable, free_variable.end())); // union fv_body & free_variable
                 std::copy(fn_body.begin(), fn_body.end(), std::inserter(callee_func, callee_func.end()));

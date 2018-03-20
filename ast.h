@@ -591,10 +591,9 @@ namespace mcc {
                                    make_cls,
                                    let_tuple>::shared_ptr;
 
-        using closure_t = std::tuple<std::shared_ptr<identifier>, std::vector<std::shared_ptr<identifier>>>;
         using known_t = std::unordered_set<std::shared_ptr<identifier>>;
 
-        struct make_cls : base<std::tuple<sptr<identifier>, closure_t, ast>> {
+        struct make_cls : base<std::tuple<sptr<identifier>, std::vector<sptr<identifier>>, ast>> {
             explicit make_cls(type && v) : base(std::move(v)) { }
         };
         struct branch : base<std::tuple<sptr<identifier>, ast, ast>> {
