@@ -6,7 +6,7 @@
 
 namespace mcc {
     namespace codegen {
-        llvm::Module * f(const std::vector<mcc::closure::toplevel_t> & ast);
+        llvm::Module * f(const closure::module & mod);
     }
 }
 

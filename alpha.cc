@@ -111,7 +111,7 @@ namespace {
 
 }
 
-std::vector<mcc::knormal::toplevel_t> mcc::alpha::f(std::vector<mcc::knormal::toplevel_t> && ast) {
-    for (auto && t : ast) { std::visit(global_pass(), t); }
-    return std::move(ast);
+mcc::knormal::module mcc::alpha::f(mcc::knormal::module && mod) {
+    for (auto && t : mod.value) { std::visit(global_pass(), t); }
+    return std::move(mod);
 }

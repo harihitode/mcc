@@ -170,19 +170,20 @@ namespace {
 
 }
 
-std::vector<mcc::parser::toplevel_t> mcc::idrel::f(std::vector<mcc::parser::toplevel_t> && ast) {
+parser::module idrel::f(parser::module && mod) {
     env_t env;
     env_t extenv;
     std::vector<mcc::parser::toplevel_t> ret;
-    for (auto && t : ast) {
+    for (auto && t : mod.value) {
         t = std::visit(global_pass(env, extenv), t);
     }
     for (auto i = extenv.begin(); i != extenv.end(); i++) {
         auto external_decl = std::make_shared<parser::external>(std::make_tuple(i->second, "min_caml_" + i->first));
         ret.push_back(external_decl);
     }
-    for (auto && t : ast) {
+    for (auto && t : mod.value) {
         ret.push_back(t);
     }
-    return ret;
+    mod.value = std::move(ret);
+    return std::move(mod);
 }

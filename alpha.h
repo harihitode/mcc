@@ -5,7 +5,7 @@
 
 namespace mcc {
     namespace alpha {
-        std::vector<knormal::toplevel_t> f(std::vector<knormal::toplevel_t> && ast);
+        knormal::module f(knormal::module && mod);
     }
 }
 

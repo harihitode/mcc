@@ -1,5 +1,5 @@
 #include <iostream>
-#include <fstream>
+#include <experimental/filesystem>
 #include <tuple>
 #include <chrono>
 
@@ -23,63 +23,35 @@
 #include <llvm/Support/raw_ostream.h>
 
 int main(int argc, char * argv[]) {
-    std::string filename;
-    std::vector<mcc::parser::toplevel_t> ast;
-    typedef std::string::const_iterator iterator_type;
 
-    if (argc > 1) {
-        filename = std::string(argv[1]);
-    } else {
-        filename = "test.code";
+    if (argc < 2) {
+        std::cerr << "USAGE: mcc [path to file]" << std::endl;
+        return 0;
     }
 
-    std::ifstream in(filename, std::ios_base::in);
-
-    if (!in) {
-        std::cerr << "Error: Could not open input file: " << filename << std::endl;
-        return 1;
-    }
-
-    std::string storage;
-    in.unsetf(std::ios::skipws);
-    std::copy(std::istream_iterator<char>(in),
-              std::istream_iterator<char>(),
-              std::back_inserter(storage));
-
-    iterator_type bgn = storage.begin();
-    iterator_type end = storage.end();
+    std::experimental::filesystem::path filepath(argv[1]);
 
     auto start = std::chrono::system_clock::now();
-
-    bool r = mcc::parser::parse(bgn, end, ast);
-    if (r) {
-        printf("parse success\n");
-    } else {
-        printf("parse failed\n");
-        return 1;
-    }
-    ast = mcc::idrel::f(std::move(ast));
+    mcc::parser::module mod = mcc::parser::f(filepath.string());
+    mod = mcc::idrel::f(std::move(mod));
     auto parsed = std::chrono::system_clock::now();
-    auto ast_typed = mcc::type::f(std::move(ast));
+    printf("parse success\n");
+
+    mod = mcc::type::f(std::move(mod));
     auto typed = std::chrono::system_clock::now();
     printf("typing success\n");
-    // for (auto & a : ast_typed) { mcc::printer::printer()(a); putchar('\n'); }
-    // printf("=============\n");
-    // mcc::printer::printer()(ast_typed);
-    // putchar('\n');
-    printf("=============\n");
-    auto ast_knormal = mcc::knormal::f(std::move(ast_typed));
+
+    auto mod_knormal = mcc::knormal::f(std::move(mod));
     auto knormalized = std::chrono::system_clock::now();
     printf("k normalization success\n");
-    printf("=============\n");
     // for (auto & a : ast_knormal) { mcc::printer::printer()(a); putchar('\n'); }
     // printf("\n================\n");
-    ast_knormal = mcc::alpha::f(std::move(ast_knormal));
+    mod_knormal = mcc::alpha::f(std::move(mod_knormal));
     auto optimized = std::chrono::system_clock::now();
     // for (auto & a : ast_knormal) { mcc::printer::printer()(a); putchar('\n'); }
     // printf("\n================\n");
     // printf("alpha transformation success\n");
-    auto ast_closured = mcc::closure::f(std::move(ast_knormal));
+    auto ast_closured = mcc::closure::f(std::move(mod_knormal));
     auto closured = std::chrono::system_clock::now();
     printf("closured success\n");
     // for (auto & a : ast_closured) { mcc::printer::printer()(a); putchar('\n'); }
@@ -104,7 +76,7 @@ int main(int argc, char * argv[]) {
 
     llvm::legacy::PassManager pm;
     std::error_code ec;
-    llvm::raw_fd_ostream ofile("target.ll", ec, llvm::sys::fs::F_RW);
+    llvm::raw_fd_ostream ofile(filepath.replace_extension(".ll").filename().c_str(), ec, llvm::sys::fs::F_RW);
     pm.add(llvm::createPromoteMemoryToRegisterPass());
     pm.add(llvm::createIPSCCPPass());
     pm.add(llvm::createFunctionInliningPass());

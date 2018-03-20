@@ -6,9 +6,11 @@
 
 namespace mcc {
     namespace parser {
-        bool parse(std::string::const_iterator & bgn,
-                   std::string::const_iterator & end,
-                   std::vector<parser::toplevel_t> & ast);
+        using itr_t = std::string::const_iterator;
+
+        bool parse(itr_t & bgn, itr_t & end, std::vector<parser::toplevel_t> & asts);
+        module f(const std::string & filepath);
+
     }
 }
 
