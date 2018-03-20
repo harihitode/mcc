@@ -5,7 +5,7 @@
 
 namespace mcc {
     namespace idrel {
-        std::vector<parser::toplevel_t> f(std::vector<parser::toplevel_t> && ast);
+        parser::module f(parser::module && ast);
     }
 }
 

@@ -597,28 +597,28 @@ struct main_routine_pass {
 
 };
 
-llvm::Module * mcc::codegen::f(const std::vector<mcc::closure::toplevel_t> & ast) {
+llvm::Module * mcc::codegen::f(const mcc::closure::module & mod) {
     IRBuilder<> * builder = new llvm::IRBuilder<>(context);
-    Module * module = new llvm::Module("test-code-dayo", context);
+    Module * module = new llvm::Module(mod.module_name, context);
 
     // toplevel function prototype
-    std::for_each(ast.rbegin(), ast.rend(), [module] (auto & t) {
+    std::for_each(mod.value.rbegin(), mod.value.rend(), [module] (auto & t) {
             std::visit(prototype_pass(module), t);
         });
     // toplevel function definition
-    std::for_each(ast.begin(), ast.end(), [module, builder] (auto & t) {
+    std::for_each(mod.value.begin(), mod.value.end(), [module, builder] (auto & t) {
             std::visit(definition_pass(builder, module), t);
         });
     // main pass create
 
-    auto && main_type = std::make_shared<type::function>(std::make_tuple(type::get_unit(), std::vector<type::type_t>{ }), false);
+    auto && main_type = std::make_shared<type::function>(std::make_tuple(mod.module_type, std::vector<type::type_t>{ }), false);
     auto main_ident = std::make_shared<closure::identifier>("main", std::move(main_type));
     auto main_routine = create_function_prototype(main_ident, module);
     auto bblock = llvm::BasicBlock::Create(context, "entry", main_routine);
     builder->SetInsertPoint(bblock);
     // main routine pass
     Value * retval = nullptr;
-    std::for_each(ast.begin(), ast.end(), [module, builder, main_routine, &retval] (auto & t) {
+    std::for_each(mod.value.begin(), mod.value.end(), [module, builder, main_routine, &retval] (auto & t) {
             retval = std::visit(main_routine_pass(builder, module, main_routine), t);
         });
     // main pass return

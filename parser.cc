@@ -1,9 +1,10 @@
+#include <iostream>
+#include <fstream>
 #include <boost/spirit/home/x3.hpp>
 #include <boost/fusion/include/at_c.hpp>
-#include "printer.h"
-#include <iostream>
 
 #include "ast.h"
+#include "parser.h"
 
 namespace mcc {
 
@@ -398,8 +399,8 @@ namespace mcc {
 
         bool parse(std::string::const_iterator & bgn,
                    std::string::const_iterator & end,
-                   std::vector<toplevel_t> & ast) {
-            bool r = phrase_parse(bgn, end, toplevel, (comment | space), ast);
+                   std::vector<toplevel_t> & asts) {
+            bool r = phrase_parse(bgn, end, toplevel, (comment | space), asts);
             if (bgn != end) {
                 int i = 0;
                 for (i = 0; i < 20 && bgn != end; i++, bgn++) {
@@ -409,6 +410,30 @@ namespace mcc {
             }
             return (r && bgn == end);
         };
+
+        module f(const std::string & filepath) {
+            module ret;
+            std::ifstream in(filepath, std::ios_base::in);
+            ret.module_name = filepath;
+            if (!in) {
+                std::cerr << "Error: Could not open input file: " << filepath << std::endl;
+            } else {
+                std::string storage;
+                in.unsetf(std::ios::skipws);
+                std::copy(std::istream_iterator<char>(in),
+                          std::istream_iterator<char>(),
+                          std::back_inserter(storage));
+
+                std::string::const_iterator bgn = storage.begin();
+                std::string::const_iterator end = storage.end();
+
+                bool r = mcc::parser::parse(bgn, end, ret.value);
+                if (!r) {
+                    std::cerr << "Error: Could not parse!" << std::endl;
+                }
+            }
+            return ret;
+        }
 
     }
 }

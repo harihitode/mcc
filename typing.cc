@@ -542,14 +542,16 @@ namespace {
 
 }
 
-std::vector<mcc::parser::toplevel_t> mcc::type::f(std::vector<mcc::parser::toplevel_t> && ast) {
+parser::module type::f(parser::module && mod) {
     mcc::env::env_t env;
-
-    for (auto && top : ast) {
+    type_t module_type;
+    for (auto && top : mod.value) {
         pass p(env);
-        p(top);
+        module_type = p(top);
     };
-    for (auto && top : ast) deref_term(top);
+    for (auto && top : mod.value) deref_term(top);
 
-    return std::move(ast);
+    mod.module_type = deref_typ(module_type);
+
+    return std::move(mod);
 }

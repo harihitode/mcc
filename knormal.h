@@ -5,7 +5,7 @@
 
 namespace mcc {
     namespace knormal {
-        std::vector<toplevel_t> f(std::vector<mcc::parser::toplevel_t> && ast);
+        knormal::module f(parser::module && mod);
     }
 }
 

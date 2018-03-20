@@ -282,10 +282,12 @@ namespace {
 
 }
 
-std::vector<mcc::knormal::toplevel_t> mcc::knormal::f(std::vector<mcc::parser::toplevel_t> && ast) {
-    std::vector<mcc::knormal::toplevel_t> ret;
-    for (auto && t : ast) {
-        ret.emplace_back(std::visit(global_pass(), t));
+mcc::knormal::module mcc::knormal::f(parser::module && mod) {
+    mcc::knormal::module ret;
+    ret.module_name = mod.module_name;
+    ret.module_type = mod.module_type;
+    for (auto && t : mod.value) {
+        ret.value.emplace_back(std::visit(global_pass(), t));
     }
     return ret;
 }

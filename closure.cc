@@ -297,13 +297,14 @@ namespace {
 
 }
 
-std::vector<mcc::closure::toplevel_t> mcc::closure::f(std::vector<mcc::knormal::toplevel_t> && ast) {
+mcc::closure::module mcc::closure::f(mcc::knormal::module && mod) {
     mcc::closure::known_t free_variable;
     mcc::closure::known_t callee_func;
     std::vector<mcc::closure::toplevel_t> ret;
-    for (auto && t : ast) {
+    for (auto && t : mod.value) {
         ret.push_back(std::visit(global_pass(free_variable, callee_func, ret), t));
     }
     fprintf(stderr, "closures: %u\n", num_closures);
-    return ret;
+    mod.value = std::move(ret);
+    return std::move(mod);
 }
