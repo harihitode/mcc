@@ -54,7 +54,6 @@ std::shared_ptr<unit> mcc::value::get_const_unit() {
     return c_unit;
 }
 
-
 std::shared_ptr<boolean> mcc::value::get_const_true() {
     if (!c_true) {
         c_true = make_shared<value::boolean>(true);
