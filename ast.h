@@ -313,7 +313,6 @@ namespace mcc {
     namespace env {
         using env_t = std::unordered_map<std::string, type::type_t>;
         using map_t = std::unordered_map<std::string, std::string>;
-        extern type::type_t entrytype;
     }
 
     namespace parser {
@@ -484,9 +483,10 @@ namespace mcc {
 
         using ast = mcc::variant_t<unit,
                                    integer,
-                                   floating_point,
                                    boolean,
+                                   floating_point,
                                    identifier,
+                                   array,
                                    unary<op_neg>,
                                    unary<op_fneg>,
                                    unary<op_not>,
@@ -500,15 +500,14 @@ namespace mcc {
                                    binary<op_fdiv>,
                                    binary<op_eq>,
                                    binary<op_le>,
-                                   let,
-                                   let_rec,
-                                   let_tuple,
                                    app,
                                    tuple,
-                                   array,
                                    get,
                                    put,
-                                   branch>::shared_ptr;
+                                   branch,
+                                   let,
+                                   let_rec,
+                                   let_tuple>::shared_ptr;
 
         // branching & recursion
         struct branch : base<std::tuple<sptr<identifier>, ast, ast>> {
@@ -588,8 +587,8 @@ namespace mcc {
                                    get,
                                    put,
                                    branch,
-                                   make_cls,
                                    let,
+                                   make_cls,
                                    let_tuple>::shared_ptr;
 
         using closure_t = std::tuple<std::shared_ptr<identifier>, std::vector<std::shared_ptr<identifier>>>;

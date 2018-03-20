@@ -2,8 +2,6 @@
 #include "typing.h"
 #include "printer.h"
 
-mcc::type::type_t mcc::env::entrytype;
-
 using std::make_shared;
 using namespace mcc::type;
 using namespace mcc::operand;
@@ -546,19 +544,12 @@ namespace {
 
 std::vector<mcc::parser::toplevel_t> mcc::type::f(std::vector<mcc::parser::toplevel_t> && ast) {
     mcc::env::env_t env;
-    mcc::type::type_t t;
+
     for (auto && top : ast) {
         pass p(env);
-        t = std::visit(p, top);
-    }
-    env::entrytype = t;
-    if (!unify(get_unit(), t)) {
-        std::cerr << "Warning: whole type is not <unit>" << std::endl;
-        mcc::printer::printer()(unwrap(t));
-        putchar('\n');
-    }
-
-    for (auto && i : ast) { deref_term(i); }
+        p(top);
+    };
+    for (auto && top : ast) deref_term(top);
 
     return std::move(ast);
 }

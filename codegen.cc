@@ -611,7 +611,7 @@ llvm::Module * mcc::codegen::f(const std::vector<mcc::closure::toplevel_t> & ast
         });
     // main pass create
 
-    auto && main_type = std::make_shared<type::function>(std::make_tuple(env::entrytype, std::vector<type::type_t>{ }), false);
+    auto && main_type = std::make_shared<type::function>(std::make_tuple(type::get_unit(), std::vector<type::type_t>{ }), false);
     auto main_ident = std::make_shared<closure::identifier>("main", std::move(main_type));
     auto main_routine = create_function_prototype(main_ident, module);
     auto bblock = llvm::BasicBlock::Create(context, "entry", main_routine);
