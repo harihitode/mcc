@@ -185,12 +185,13 @@ namespace {
                     });
                 fprintf(stderr, "\n");
                 ++num_closures;
-                auto && cls = make_shared<make_cls>(make_tuple(ident,
-                                                               std::vector<std::shared_ptr<identifier>>(fv_body.cbegin(), fv_body.cend()),
-                                                               e2_));
+                auto && cls = make_shared<let_rec>(make_tuple(ident,
+                                                              std::vector<std::shared_ptr<identifier>>(fv_body.cbegin(), fv_body.cend()),
+                                                              value::get_const_unit(),
+                                                              e2_));
                 std::copy(fv_body.begin(), fv_body.end(), std::inserter(free_variable, free_variable.end())); // union fv_body & free_variable
                 std::copy(fn_body.begin(), fn_body.end(), std::inserter(callee_func, callee_func.end()));
-                free_variable.erase(ident); // x is now made by make_cls
+                free_variable.erase(ident); // x is now made by let_rec
                 ret = std::move(cls);
             } else {
                 ret = e2_;
@@ -265,12 +266,13 @@ namespace {
             if ((free_variable.find(ident) != free_variable.end()) || fv_body.size()) {
                 // see code/closure.ml
                 std::get<std::shared_ptr<type::function>>(unwrap(t))->is_closure = true;
-                auto && cls = make_shared<make_cls>(make_tuple(ident,
-                                                               std::vector<std::shared_ptr<identifier>>(fv_body.cbegin(), fv_body.cend()),
-                                                               value::get_const_unit()));
+                auto && cls = make_shared<let_rec>(make_tuple(ident,
+                                                              std::vector<std::shared_ptr<identifier>>(fv_body.cbegin(), fv_body.cend()),
+                                                              value::get_const_unit(),
+                                                              value::get_const_unit()));
                 std::copy(fv_body.begin(), fv_body.end(), std::inserter(free_variable, free_variable.end())); // union fv_body & free_variable
                 std::copy(fn_body.begin(), fn_body.end(), std::inserter(callee_func, callee_func.end()));
-                free_variable.erase(ident); // x is now made by make_cls
+                free_variable.erase(ident); // x is now made by let_rec
                 ret = std::move(cls);
             } else {
                 ret = value::get_const_unit();

@@ -558,53 +558,15 @@ namespace mcc {
         using knormal::put;
         using knormal::app;
 
-        struct branch;
-        struct let;
-        struct let_tuple;
-        struct make_cls;
+        using knormal::branch;
+        using knormal::let;
+        using knormal::let_rec;
+        using knormal::let_tuple;
 
-        using ast = mcc::variant_t<unit,
-                                   integer,
-                                   boolean,
-                                   floating_point,
-                                   identifier,
-                                   array,
-                                   unary<op_not>,
-                                   unary<op_neg>,
-                                   unary<op_fneg>,
-                                   binary<op_add>,
-                                   binary<op_sub>,
-                                   binary<op_mul>,
-                                   binary<op_div>,
-                                   binary<op_fadd>,
-                                   binary<op_fsub>,
-                                   binary<op_fmul>,
-                                   binary<op_fdiv>,
-                                   binary<op_eq>,
-                                   binary<op_le>,
-                                   app,
-                                   tuple,
-                                   get,
-                                   put,
-                                   branch,
-                                   let,
-                                   make_cls,
-                                   let_tuple>::shared_ptr;
+        using knormal::ast;
 
         using known_t = std::unordered_set<std::shared_ptr<identifier>>;
 
-        struct make_cls : base<std::tuple<sptr<identifier>, std::vector<sptr<identifier>>, ast>> {
-            explicit make_cls(type && v) : base(std::move(v)) { }
-        };
-        struct branch : base<std::tuple<sptr<identifier>, ast, ast>> {
-            explicit branch(type && v) : base(std::move(v)) { }
-        };
-        struct let : base<std::tuple<sptr<identifier>, ast, ast>> {
-            explicit let(type && v) : base(std::move(v)) { }
-        };
-        struct let_tuple : base<std::tuple<std::vector<sptr<identifier>>, sptr<identifier>, ast>> {
-            explicit let_tuple(type && v) : base(std::move(v)) { }
-        };
         struct global : base<std::tuple<sptr<identifier>, ast>> {
             explicit global(type && v) : base(std::move(v)) { }
         };

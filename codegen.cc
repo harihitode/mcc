@@ -264,7 +264,7 @@ namespace {
             }
             return builder->CreateCall(fun_ptr, args);
         }
-        result_type operator() (const sptr<closure::make_cls> & e) {
+        result_type operator() (const sptr<closure::let_rec> & e) {
             // ts is struct of {function_address, args...}
             std::vector<Type *> ts;
             std::deque<Value *> vs;
@@ -303,7 +303,7 @@ namespace {
             Value * store_value = builder->CreatePointerCast(v, llvm::PointerType::getUnqual(llvm::PointerType::getUnqual(function_type)), "ptrcast");
             Value * store = builder->CreateAlloca(llvm::PointerType::getUnqual(llvm::PointerType::getUnqual(function_type)), 0, std::get<0>(std::get<0>(e->value)->value));
             builder->CreateStore(store_value, store);
-            return pass(builder, module, function)(std::get<2>(e->value));
+            return pass(builder, module, function)(std::get<3>(e->value));
         }
         result_type operator() (const sptr<closure::get> & e) {
             Value * arr = pass(builder, module, function)(std::get<0>(e->value));

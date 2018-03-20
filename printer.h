@@ -307,37 +307,8 @@ namespace mcc {
             }
 
             // closure
-            // knormal
             result_type operator() (const closure::toplevel_t & ast) const {
                 std::visit(printer(), ast);
-            }
-
-            result_type operator() (const closure::ast & e) const {
-                std::visit(printer(), e);
-            }
-
-            result_type operator() (const sptr<closure::make_cls> & e) const {
-                std::cerr << "[make_cls ";
-                for_each_tuple(e->value, printer());
-                std::cerr << "]";
-            }
-
-            result_type operator() (const sptr<closure::branch> & e) const {
-                std::cerr << "[branch ";
-                for_each_tuple(e->value, printer());
-                std::cerr << "]";
-            }
-
-            result_type operator() (const sptr<closure::let_tuple> & e) const {
-                std::cerr << "[let_tuple ";
-                for_each_tuple(e->value, printer());
-                std::cerr << "]";
-            }
-
-            result_type operator() (const sptr<closure::let> & e) const {
-                std::cerr << "[let ";
-                for_each_tuple(e->value, printer());
-                std::cerr << "]";
             }
 
             result_type operator() (const sptr<closure::global> & ast) const {
