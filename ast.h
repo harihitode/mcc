@@ -483,10 +483,9 @@ namespace mcc {
 
         using ast = mcc::variant_t<unit,
                                    integer,
-                                   boolean,
                                    floating_point,
+                                   boolean,
                                    identifier,
-                                   array,
                                    unary<op_neg>,
                                    unary<op_fneg>,
                                    unary<op_not>,
@@ -500,14 +499,15 @@ namespace mcc {
                                    binary<op_fdiv>,
                                    binary<op_eq>,
                                    binary<op_le>,
-                                   app,
-                                   tuple,
-                                   get,
-                                   put,
-                                   branch,
                                    let,
                                    let_rec,
-                                   let_tuple>::shared_ptr;
+                                   let_tuple,
+                                   app,
+                                   tuple,
+                                   array,
+                                   get,
+                                   put,
+                                   branch>::shared_ptr;
 
         // branching & recursion
         struct branch : base<std::tuple<sptr<identifier>, ast, ast>> {
