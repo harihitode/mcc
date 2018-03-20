@@ -60,10 +60,10 @@ namespace mcc {
 
             iterator(const map_stack<Key, Value> & container,
                      current_stack_t stack_idx,
-                     current_elem_t elem_idx) : c(container), s(stack_idx), e(elem_idx) { }
+                     current_elem_t elem_idx = current_elem_t()) : c(container), s(stack_idx), e(elem_idx) { }
 
             bool operator==(const iterator & rhs) noexcept {
-                if (s == rhs.s && s == c.map.rend()) {
+                if (s == rhs.s && s == c.map.rend()) { // stack_end
                     return true;
                 } else if (s == rhs.s && e == rhs.e) {
                     return true;
@@ -109,9 +109,21 @@ namespace mcc {
             return this->end();
         }
 
-        iterator begin() { return iterator(*this, map.rbegin(), map.rbegin()->begin()); }
-        iterator end() { if (map.size() == 0) this->push(); return iterator(*this, map.rend(), map.rend()->begin()); }
+        iterator begin() {
+            if (map.size() == 0) {
+                return iterator(*this, map.rbegin());
+            } else {
+                return iterator(*this, map.rbegin(), map.rbegin()->begin());
+            }
+        }
 
+        iterator end() {
+            if (map.size() == 0) {
+                return iterator(*this, map.rend());
+            } else {
+                return iterator(*this, map.rend(), map.rend()->begin());
+            }
+        }
     };
 
     template <typename F>
@@ -430,6 +442,12 @@ namespace mcc {
                                         std::shared_ptr<global_rec>,
                                         std::shared_ptr<global_tuple>>;
 
+        struct module {
+            std::string module_name;
+            type::type_t module_type;
+            std::vector<toplevel_t> value;
+        };
+
     }
 
     namespace knormal {
@@ -531,11 +549,18 @@ namespace mcc {
         struct global_rec : base<std::tuple<sptr<identifier>, std::vector<sptr<identifier>>, std::vector<sptr<identifier>>, ast>> {
             explicit global_rec(type && v) : base(std::move(v)) { }
         };
+
         using toplevel_t = std::variant<ast,
                                         std::shared_ptr<external>,
                                         std::shared_ptr<global>,
                                         std::shared_ptr<global_rec>,
                                         std::shared_ptr<global_tuple>>;
+
+        struct module {
+            std::string module_name;
+            type::type_t module_type;
+            std::vector<toplevel_t> value;
+        };
 
     }
 
@@ -570,6 +595,7 @@ namespace mcc {
         using knormal::global_rec;
 
         using knormal::toplevel_t;
+        using knormal::module;
 
     }
 
