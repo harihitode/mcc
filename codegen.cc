@@ -506,7 +506,6 @@ struct prototype_pass {
         // register external variables to the module
         auto ident = std::get<0>(e->value);
         std::get<0>(ident->value) = std::get<1>(e->value);
-        printf("external: %s\n", std::get<1>(e->value).c_str());
         auto t = unwrap(std::get<1>(ident->value));
         if (std::get_if<sptr<type::function>>(&t)) {
             create_function_prototype(ident, module);
