@@ -10,7 +10,6 @@ namespace mcc {
 
     namespace x3 = boost::spirit::x3;
     using boost::fusion::at_c;
-    using std::make_unique;
     using std::make_shared;
     using std::make_tuple;
 
@@ -34,13 +33,16 @@ namespace mcc {
         using x3::confix;
         using x3::raw;
 
+        // ex) .1 (=0.1) is NOT accepted, 1. (=1.0) is accepted
+        // floating point format for mincaml
         template <typename Type>
         struct mincaml_real_policies : x3::strict_real_policies<Type> {
             static bool const allow_leading_dot = false;
             static bool const allow_trailing_dot = true;
         };
-        x3::real_parser<double, mincaml_real_policies<double>> const real_ = {};
+        x3::real_parser<double, mincaml_real_policies<double>> const real_ = { };
 
+        // keywords below are not to be used as identifiers
         struct mincaml_keywords : x3::symbols<x3::unused_type> {
             mincaml_keywords() {
                 add ("if", x3::unused)
@@ -57,43 +59,43 @@ namespace mcc {
             }
         } const keywords;
 
-        x3::rule <class toplevel, std::vector<toplevel_t>> const toplevel = "toplevel";
-        x3::rule <class exp, toplevel_t> const exp = "exp";
-        x3::rule <class prec_let, ast> const prec_let = "prec_exp";
-        x3::rule <class simple_exp, ast> const simple_exp = "simple_exp";
-        x3::rule <class gram_integer, sptr<integer>> const gram_integer = "integer";
-        x3::rule <class gram_floating_point, sptr<floating_point>> const gram_floating_point = "floating_point";
-        x3::rule <class gram_boolean, sptr<boolean>> const gram_boolean = "boolean";
-        x3::rule <class gram_unit, sptr<unit>> const gram_unit = "unit";
-        x3::rule <class gram_identifier, sptr<identifier>> const gram_identifier = "identifier";
-        x3::rule <class gram_branch, ast> const gram_branch = "branch";
-        x3::rule <class gram_let_binding, ast> const gram_let_binding = "let_binding";
-        x3::rule <class gram_let, sptr<global>> const gram_let = "let";
-        x3::rule <class gram_let_rec, sptr<global_rec>> const gram_let_rec = "let_rec";
-        x3::rule <class gram_let_tuple, sptr<global_tuple>> const gram_let_tuple = "let_tuple";
-        x3::rule <class comment, ast> const comment = "comment";
-        x3::rule <class prec_semicolon, ast> const prec_semicolon = "prec_semicolon";
-        x3::rule <class prec_if, ast> const prec_if = "prec_if";
-        x3::rule <class then_else, ast> const then_else = "then_else";
-        x3::rule <class gram_get, std::vector<ast>> const gram_get = "get";
-        x3::rule <class prec_put, ast> const prec_put = "prec_put";
-        x3::rule <class gram_put, ast> const gram_put = "put";
-        x3::rule <class prec_dot, ast> const prec_dot = "prec_dot";
-        x3::rule <class prec_comma, ast> const prec_comma = "prec_comma";
-        x3::rule <class prec_comp, ast> const prec_comp = "prec_comp";
-        x3::rule <class comp_loop, std::function<ast (ast const &)>> const comp_loop = "comp_loop";
-        x3::rule <class prec_additive, ast> const prec_additive = "prec_additive";
-        x3::rule <class additive_loop, std::function<ast (ast const &)>> const additive_loop = "additive_loop";
-        x3::rule <class prec_multiplicative, ast> const prec_multiplicative = "prec_multiplicative";
-        x3::rule <class multiplicative_loop, std::function<ast (ast const &)>> const multiplicative_loop = "multiplicative_loop";
-        x3::rule <class prec_unary_minus, ast> const prec_unary_minus = "prec_unary_minus";
-        x3::rule <class prec_app, ast> const prec_app = "prec_app";
-        x3::rule <class gram_external, sptr<external>> const gram_external = "gram_external";
-        x3::rule <class gram_type, type::type_t> const gram_type = "gram_type";
-        x3::rule <class gram_simple_type, type::type_t> const gram_simple_type = "gram_simple_type";
-        x3::rule <class gram_constr_type, type::type_t> const gram_constr_type = "gram_constr_type";
-        x3::rule <class gram_tuple_type, type::type_t> const gram_tuple_type = "gram_tuple_type";
-        x3::rule <class gram_func_type, type::type_t> const gram_func_type = "gram_func_type";
+        x3::rule<class toplevel_class, std::vector<toplevel_t>> const toplevel = "toplevel";
+        x3::rule<class exp_class, toplevel_t> const exp = "exp";
+        x3::rule<class prec_let_class, ast> const prec_let = "prec_exp";
+        x3::rule<class simple_exp_class, ast> const simple_exp = "simple_exp";
+        x3::rule<class gram_integer_class, sptr<integer>> const gram_integer = "integer";
+        x3::rule<class gram_floating_point_class, sptr<floating_point>> const gram_floating_point = "floating_point";
+        x3::rule<class gram_boolean_class, sptr<boolean>> const gram_boolean = "boolean";
+        x3::rule<class gram_unit_class, sptr<unit>> const gram_unit = "unit";
+        x3::rule<class gram_identifier_class, sptr<identifier>> const gram_identifier = "identifier";
+        x3::rule<class gram_branch_class, ast> const gram_branch = "branch";
+        x3::rule<class gram_let_binding_class, ast> const gram_let_binding = "let_binding";
+        x3::rule<class gram_let_class, sptr<global>> const gram_let = "let";
+        x3::rule<class gram_let_rec_class, sptr<global_rec>> const gram_let_rec = "let_rec";
+        x3::rule<class gram_let_tuple_class, sptr<global_tuple>> const gram_let_tuple = "let_tuple";
+        x3::rule<class comment_class, ast> const comment = "comment";
+        x3::rule<class prec_semicolon_class, ast> const prec_semicolon = "prec_semicolon";
+        x3::rule<class prec_if_class, ast> const prec_if = "prec_if";
+        x3::rule<class then_else_class, ast> const then_else = "then_else";
+        x3::rule<class gram_get_class, std::vector<ast>> const gram_get = "get";
+        x3::rule<class prec_put_class, ast> const prec_put = "prec_put";
+        x3::rule<class gram_put_class, ast> const gram_put = "put";
+        x3::rule<class prec_dot_class, ast> const prec_dot = "prec_dot";
+        x3::rule<class prec_comma_class, ast> const prec_comma = "prec_comma";
+        x3::rule<class prec_comp_class, ast> const prec_comp = "prec_comp";
+        x3::rule<class comp_loop_class, std::function<ast (ast const &)>> const comp_loop = "comp_loop";
+        x3::rule<class prec_additive_class, ast> const prec_additive = "prec_additive";
+        x3::rule<class additive_loop_class, std::function<ast (ast const &)>> const additive_loop = "additive_loop";
+        x3::rule<class prec_multiplicative_class, ast> const prec_multiplicative = "prec_multiplicative";
+        x3::rule<class multiplicative_loop_class, std::function<ast (ast const &)>> const multiplicative_loop = "multiplicative_loop";
+        x3::rule<class prec_unary_minus_class, ast> const prec_unary_minus = "prec_unary_minus";
+        x3::rule<class prec_app_class, ast> const prec_app = "prec_app";
+        x3::rule<class gram_external_class, sptr<external>> const gram_external = "gram_external";
+        x3::rule<class gram_type_class, type::type_t> const gram_type = "gram_type";
+        x3::rule<class gram_simple_type_class, type::type_t> const gram_simple_type = "gram_simple_type";
+        x3::rule<class gram_constr_type_class, type::type_t> const gram_constr_type = "gram_constr_type";
+        x3::rule<class gram_tuple_type_class, type::type_t> const gram_tuple_type = "gram_tuple_type";
+        x3::rule<class gram_func_type_class, type::type_t> const gram_func_type = "gram_func_type";
 
         // comment skip parser
         auto const comment_def = confix("(*", "*)")[*(comment | char_ - "*)")];
