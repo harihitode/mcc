@@ -35,44 +35,21 @@ int main(int argc, char * argv[]) {
     mcc::parser::module mod = mcc::parser::f(filepath.string());
     mod = mcc::idrel::f(std::move(mod));
     auto parsed = std::chrono::system_clock::now();
-    printf("parse success\n");
-
     mod = mcc::type::f(std::move(mod));
+
     auto typed = std::chrono::system_clock::now();
-    printf("typing success\n");
 
     auto mod_knormal = mcc::knormal::f(std::move(mod));
     auto knormalized = std::chrono::system_clock::now();
-    printf("k normalization success\n");
-    // for (auto & a : ast_knormal) { mcc::printer::printer()(a); putchar('\n'); }
-    // printf("\n================\n");
+
     mod_knormal = mcc::alpha::f(std::move(mod_knormal));
     auto optimized = std::chrono::system_clock::now();
-    // for (auto & a : ast_knormal) { mcc::printer::printer()(a); putchar('\n'); }
-    // printf("\n================\n");
-    // printf("alpha transformation success\n");
+
     auto ast_closured = mcc::closure::f(std::move(mod_knormal));
     auto closured = std::chrono::system_clock::now();
-    printf("closured success\n");
-    // for (auto & a : ast_closured) { mcc::printer::printer()(a); putchar('\n'); }
-    // printf("\n================\n");
-    // printf("toplevel functions...\n");
-    // for (auto & i : mcc::closure::toplevel) {
-    //     printf("%s: ", std::get<0>(i).first.c_str());
-    //     mcc::type::printer()(std::get<0>(i).second);
-    //     printf("[args]");
-    //     for (auto & j : std::get<1>(i)) std::cout << j.first << ",";
-    //     printf("[fv]");
-    //     for (auto & j : std::get<2>(i)) std::cout << j.first << ",";
-    //     printf(": ");
-    //     pt(std::get<3>(i));
-    //     printf("\n---\n");
-    // }
 
-    // ----
     llvm::Module * module = mcc::codegen::f(ast_closured);
     auto finish = std::chrono::system_clock::now();
-    printf("module generated\n");
 
     llvm::legacy::PassManager pm;
     std::error_code ec;
