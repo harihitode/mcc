@@ -334,13 +334,13 @@ void type::deref_term(parser::toplevel_t & ast) {
 }
 
 namespace {
-
+    using env_t = map_stack<std::string, type::type_t>;
     struct pass {
 
         using result_type = type_t;
-        env::env_t & env;
+        env_t & env;
 
-        pass(env::env_t & e) : env(e) { }
+        pass(env_t & e) : env(e) { }
 
         result_type operator() (const parser::toplevel_t & ast) const {
             return std::visit(pass(env), ast);
@@ -382,17 +382,19 @@ namespace {
         }
 
         result_type operator() (const sptr<parser::let> & ast) {
-            auto env_ = env; // copy
+            env.push();
             const sptr<parser::identifier> & ident = std::get<0>(ast->value);
             assert(unify(std::get<1>(ident->value),
-                         std::visit(pass(env_), std::get<1>(ast->value))));
-            env_[std::get<0>(ident->value)] = std::get<1>(ident->value);
-            return pass(env_)(std::get<2>(ast->value));
+                         std::visit(pass(env), std::get<1>(ast->value))));
+            env.insert(make_pair(std::get<0>(ident->value), std::get<1>(ident->value)));
+            auto && ret = pass(env)(std::get<2>(ast->value));
+            env.pop();
+            return std::move(ret);
         }
 
         result_type operator() (const sptr<parser::external> & ast) {
             auto ident = std::get<0>(ast->value);
-            env[std::get<0>(ident->value)] = std::get<1>(ident->value);
+            env.insert(make_pair(std::get<0>(ident->value), std::get<1>(ident->value)));
             return get_unit();
         }
 
@@ -400,20 +402,22 @@ namespace {
             const sptr<parser::identifier> & ident = std::get<0>(ast->value);
             assert(unify(std::get<1>(ident->value),
                          std::visit(pass(env), std::get<1>(ast->value))));
-            env[std::get<0>(ident->value)] = std::get<1>(ident->value);
+            env.insert(make_pair(std::get<0>(ident->value), std::get<1>(ident->value)));
             return get_unit();
         }
 
         result_type operator() (const sptr<parser::let_tuple> & ast) {
-            auto env_ = env; // copy
-            type_t t1 = pass(env_)(std::get<1>(ast->value));
+            env.push();
+            type_t t1 = pass(env)(std::get<1>(ast->value));
             std::vector<type_t> t2;
             for (auto && i : std::get<0>(ast->value)) {
                 t2.push_back(std::get<1>(i->value)); // type
-                env_[std::get<0>(i->value)] = std::get<1>(i->value); // key pair
+                env.insert(make_pair(std::get<0>(i->value), std::get<1>(i->value))); // key pair
             }
             assert(unify(t1, make_shared<tuple>(std::move(t2))));
-            return pass(env_)(std::get<2>(ast->value));
+            auto && ret = pass(env)(std::get<2>(ast->value));
+            env.pop();
+            return std::move(ret);
         }
 
         result_type operator() (const sptr<parser::global_tuple> & ast) {
@@ -421,38 +425,40 @@ namespace {
             std::vector<type_t> t2;
             for (auto && i : std::get<0>(ast->value)) {
                 t2.push_back(std::get<1>(i->value)); // type
-                env[std::get<0>(i->value)] = std::get<1>(i->value); // key pair
+                env.insert(make_pair(std::get<0>(i->value), std::get<1>(i->value))); // key pair
             }
             assert(unify(t1, make_shared<tuple>(std::move(t2))));
             return get_unit();
         }
 
         result_type operator() (const sptr<parser::let_rec> & ast) {
-            auto env_ = env; // copy
+            env.push();
             const sptr<parser::identifier> & ident = std::get<0>(ast->value);
-            env_[std::get<0>(ident->value)] = std::get<1>(ident->value); // key pair
-            auto && ret = pass(env_)(std::get<3>(ast->value)); // exp
+            env.insert(make_pair(std::get<0>(ident->value), std::get<1>(ident->value))); // key pair
+            auto && ret = pass(env)(std::get<3>(ast->value)); // exp
             std::vector<type_t> vec_tmp;
             for (auto && i : std::get<1>(ast->value)) {
                 vec_tmp.push_back(std::get<1>(i->value));
-                env_[std::get<0>(i->value)] = std::get<1>(i->value);
+                env.insert(make_pair(std::get<0>(i->value), std::get<1>(i->value)));
             }
-            auto && type_tmp = make_shared<function>(make_tuple(pass(env_)(std::get<2>(ast->value)), vec_tmp));
+            auto && type_tmp = make_shared<function>(make_tuple(pass(env)(std::get<2>(ast->value)), vec_tmp));
             assert(unify(std::get<1>(ident->value), type_tmp));
-            return ret;
+            env.pop();
+            return std::move(ret);
         }
 
         result_type operator() (const sptr<parser::global_rec> & ast) {
             const sptr<parser::identifier> & ident = std::get<0>(ast->value);
-            env[std::get<0>(ident->value)] = std::get<1>(ident->value); // key pair
+            env.insert(make_pair(std::get<0>(ident->value), std::get<1>(ident->value))); // key pair
             std::vector<type_t> vec_tmp;
-            auto env_ = env; // copy
+            env.push();
             for (auto && i : std::get<1>(ast->value)) {
                 vec_tmp.push_back(std::get<1>(i->value));
-                env_[std::get<0>(i->value)] = std::get<1>(i->value);
+                env.insert(make_pair(std::get<0>(i->value), std::get<1>(i->value)));
             }
-            auto && type_tmp = make_shared<function>(make_tuple(pass(env_)(std::get<2>(ast->value)), vec_tmp));
+            auto && type_tmp = make_shared<function>(make_tuple(pass(env)(std::get<2>(ast->value)), vec_tmp));
             assert(unify(std::get<1>(ident->value), type_tmp));
+            env.pop();
             return get_unit();
         }
 
@@ -543,7 +549,7 @@ namespace {
 }
 
 parser::module type::f(parser::module && mod) {
-    mcc::env::env_t env;
+    env_t env;
     type_t module_type;
     for (auto && top : mod.value) {
         pass p(env);
