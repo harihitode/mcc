@@ -5,7 +5,7 @@
 
 namespace mcc {
     namespace idrel {
-        parser::module f(parser::module && ast);
+        parser::module f(context & ctx, parser::module && ast);
     }
 }
 

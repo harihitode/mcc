@@ -136,8 +136,7 @@ namespace mcc {
     // workaround...
     template <typename T>
     struct tuple_size : std::integral_constant<std::size_t,
-                                               std::tuple_size<typename std::remove_reference_t<T>>
-                                               ::value> { };
+                                               std::tuple_size<typename std::remove_reference_t<T>>::value> { };
 
     template <std::size_t index, std::size_t end, bool isEnd = (index == end)>
     struct for_each_tuple_impl;
@@ -161,6 +160,8 @@ namespace mcc {
     void for_each_tuple(Tuple && tuple, F f) {
         for_each_tuple_impl<0, tuple_size<Tuple>::value>::Execute(std::forward<Tuple>(tuple), f);
     }
+
+    struct context;
 
     template <typename T>
     struct base {
@@ -240,12 +241,12 @@ namespace mcc {
             explicit boolean(bool v = true) : base(v) { }
         };
 
-        std::shared_ptr<unit> get_const_unit();
-        std::shared_ptr<integer> get_const_integer(int value);
-        std::shared_ptr<floating_point> get_const_floating_point(double value);
-        std::shared_ptr<boolean> get_const_boolean(bool value);
-        std::shared_ptr<boolean> get_const_true();
-        std::shared_ptr<boolean> get_const_false();
+        std::shared_ptr<unit> get_const_unit(context & ctx);
+        std::shared_ptr<integer> get_const_integer(context & ctx, int value);
+        std::shared_ptr<floating_point> get_const_floating_point(context & ctx, double value);
+        std::shared_ptr<boolean> get_const_boolean(context & ctx, bool value);
+        std::shared_ptr<boolean> get_const_true(context & ctx);
+        std::shared_ptr<boolean> get_const_false(context & ctx);
 
         struct identifier : base<std::tuple<std::string, type::type_t>> {
             bool is_external;
@@ -318,8 +319,8 @@ namespace mcc {
     }
 
     namespace id {
-        std::string gentmp(const type::type_t & t);
-        std::string genid(const std::string & s);
+        std::string gentmp(context & ctx, const type::type_t & t);
+        std::string genid(context & ctx, const std::string & s);
     }
 
     namespace env {
@@ -598,6 +599,17 @@ namespace mcc {
         using knormal::module;
 
     }
+
+    struct context {
+        uint32_t counter;
+        uint32_t num_closures;
+        std::unordered_map<int, std::shared_ptr<value::integer>> c_int;
+        std::unordered_map<double, std::shared_ptr<value::floating_point>> c_float;
+        std::shared_ptr<value::boolean> c_true;
+        std::shared_ptr<value::boolean> c_false;
+        std::shared_ptr<value::unit> c_unit;
+        context() : counter(0), num_closures(0) { }
+    };
 
 }
 

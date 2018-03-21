@@ -18,7 +18,7 @@ namespace mcc {
         bool occur(const std::shared_ptr<variable> & a, const type_t & b);
         bool unify(const type_t & a, const type_t & b);
 
-        parser::module f(parser::module && mod);
+        parser::module f(context & ctx, parser::module && mod);
 
     }
 }

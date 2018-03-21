@@ -11,12 +11,12 @@ namespace {
 
     template <typename C>
     std::tuple<ast, type::type_t>
-    insert_let(std::tuple<ast, type::type_t> && e, C f) {
+    insert_let(std::tuple<ast, type::type_t> && e, mcc::context & ctx, C f) {
         if (std::get_if<sptr<identifier>>(&std::get<0>(e))) {
             auto && x = std::get<sptr<identifier>>(std::get<0>(e));
             return f(x);
         } else {
-            auto && x = make_shared<identifier>(id::gentmp(std::get<1>(e)), std::get<1>(e), /* is_global = */ false);
+            auto && x = make_shared<identifier>(id::gentmp(ctx, std::get<1>(e)), std::get<1>(e), /* is_global = */ false);
             auto && new_body = f(x);
             auto && new_let = make_shared<let>(make_tuple(x,
                                                           std::move(std::get<0>(e)),
@@ -29,10 +29,12 @@ namespace {
     struct pass {
 
         using result_type = std::tuple<ast, type::type_t>;
-        pass() { }
+        context & ctx;
+
+        pass(context & c) : ctx(c) { }
 
         result_type operator() (const parser::ast & ast) const {
-            return std::visit(pass(), ast);
+            return std::visit(pass(ctx), ast);
         }
 
         result_type operator() (const sptr<parser::unit> & ast) const {
@@ -53,16 +55,16 @@ namespace {
 
         template <typename Op>
         result_type operator() (const sptr<parser::unary<Op>> & ast) const {
-            return insert_let(pass()(ast->value), [] (auto & x) {
+            return insert_let(pass(ctx)(ast->value), ctx, [] (auto & x) {
                     return make_tuple(make_shared<unary<Op>>(x), Op::result_type());
                 });
         }
 
         result_type operator() (const sptr<parser::unary<op_not>> & ast) const {
             auto && t = make_shared<parser::branch>(make_tuple(ast->value,
-                                                               value::get_const_false(),
-                                                               value::get_const_true()));
-            return pass()(std::move(t));
+                                                               value::get_const_false(ctx),
+                                                               value::get_const_true(ctx)));
+            return pass(ctx)(std::move(t));
         }
 
         // template <typename Op, std::enable_if_t<std::negation_v<std::disjunction<std::is_same<Op, op_eq>,
@@ -70,10 +72,10 @@ namespace {
         //                                         std::nullptr_t> = nullptr>
         template <typename Op>
         result_type operator() (const sptr<parser::binary<Op>> & ast) const {
-            auto && lhs = pass()(std::get<0>(ast->value));
-            auto && rhs = pass()(std::get<1>(ast->value));
-            return insert_let(std::move(lhs), [&] (auto & x) {
-                    return insert_let(std::move(rhs), [&] (auto & y) {
+            auto && lhs = pass(ctx)(std::get<0>(ast->value));
+            auto && rhs = pass(ctx)(std::get<1>(ast->value));
+            return insert_let(std::move(lhs), ctx, [&] (auto & x) {
+                    return insert_let(std::move(rhs), ctx, [&] (auto & y) {
                             return make_tuple(make_shared<binary<Op>>(make_tuple(x, y)), Op::result_type());
                         });
                 });
@@ -96,11 +98,11 @@ namespace {
                 auto t = make_shared<parser::branch>(make_tuple((*not_exp)->value,
                                                                 std::get<2>(ast->value),
                                                                 std::get<1>(ast->value)));
-                return pass()(t);
+                return pass(ctx)(t);
             } else {
-                return insert_let(pass()(std::get<0>(ast->value)), [&] (auto & condition) {
-                        auto && t_branch = pass()(std::get<1>(ast->value));
-                        auto && f_branch = pass()(std::get<2>(ast->value));
+                return insert_let(pass(ctx)(std::get<0>(ast->value)), ctx, [&] (auto & condition) {
+                        auto && t_branch = pass(ctx)(std::get<1>(ast->value));
+                        auto && f_branch = pass(ctx)(std::get<2>(ast->value));
                         return make_tuple(make_shared<branch>(make_tuple(condition,
                                                                          std::move(std::get<0>(t_branch)),
                                                                          std::move(std::get<0>(f_branch)))),
@@ -116,8 +118,8 @@ namespace {
 
         result_type operator() (const sptr<parser::let> & ast) {
             auto && var = std::get<0>(ast->value);
-            auto && val = pass()(std::move(std::get<1>(ast->value)));
-            auto && cnt = pass()(std::move(std::get<2>(ast->value)));
+            auto && val = pass(ctx)(std::move(std::get<1>(ast->value)));
+            auto && cnt = pass(ctx)(std::move(std::get<2>(ast->value)));
             auto && new_let = make_shared<let>(make_tuple(std::move(var),
                                                           std::move(std::get<0>(val)),
                                                           std::move(std::get<0>(cnt))));
@@ -125,12 +127,12 @@ namespace {
         }
 
         result_type operator() (const sptr<parser::let_tuple> & ast) {
-            return insert_let(pass()(std::move(std::get<1>(ast->value))), [&] (auto & x) {
+            return insert_let(pass(ctx)(std::move(std::get<1>(ast->value))), ctx, [&] (auto & x) {
                     std::vector<sptr<identifier>> xts;
                     for (auto && i : std::get<0>(ast->value)) {
                         xts.emplace_back(i);
                     }
-                    auto && cnt = pass()(std::move(std::get<2>(ast->value)));
+                    auto && cnt = pass(ctx)(std::move(std::get<2>(ast->value)));
                     auto && new_let_tuple = make_shared<let_tuple>(make_tuple(std::move(xts),
                                                                               x,
                                                                               std::move(std::get<0>(cnt))));
@@ -141,13 +143,13 @@ namespace {
 
         result_type operator() (const sptr<parser::let_rec> & ast) {
             auto && name = std::get<0>(ast->value);
-            auto && cnt = pass()(std::move(std::get<3>(ast->value)));
+            auto && cnt = pass(ctx)(std::move(std::get<3>(ast->value)));
             std::vector<sptr<identifier>> yts;
             // env_update
             for (auto & arg : std::get<1>(ast->value)) {
                 yts.emplace_back(std::move(arg));
             }
-            auto && body = pass()(std::move(std::get<2>(ast->value)));
+            auto && body = pass(ctx)(std::move(std::get<2>(ast->value)));
             auto && new_let_rec = make_shared<let_rec>(make_tuple(name,
                                                                   std::move(yts),
                                                                   std::move(std::get<0>(body)),
@@ -157,9 +159,9 @@ namespace {
         }
 
         result_type operator() (const sptr<parser::put> & ast) const {
-            return insert_let(pass()(std::get<0>(ast->value)), [&] (auto & x) {
-                    return insert_let(pass()(std::get<1>(ast->value)), [&] (auto & y) {
-                            return insert_let(pass()(std::get<2>(ast->value)), [&] (auto & z) {
+            return insert_let(pass(ctx)(std::get<0>(ast->value)), ctx, [&] (auto & x) {
+                    return insert_let(pass(ctx)(std::get<1>(ast->value)), ctx, [&] (auto & y) {
+                            return insert_let(pass(ctx)(std::get<2>(ast->value)), ctx, [&] (auto & z) {
                                     return make_tuple(make_shared<put>(make_tuple(x, y, z)), type::get_unit());
                                 });
                         });
@@ -167,20 +169,20 @@ namespace {
         }
 
         result_type operator() (const sptr<parser::get> & ast) const {
-            auto && pass_e1 = pass()(std::get<0>(ast->value));
+            auto && pass_e1 = pass(ctx)(std::get<0>(ast->value));
             auto pass_e1_t = std::get<sptr<type::array>>(unwrap(std::get<1>(pass_e1)))->value;
-            return insert_let(std::move(pass_e1), [&] (auto & x) {
-                    return insert_let(pass()(std::get<1>(ast->value)), [&] (auto & y) {
+            return insert_let(std::move(pass_e1), ctx, [&] (auto & x) {
+                    return insert_let(pass(ctx)(std::get<1>(ast->value)), ctx, [&] (auto & y) {
                             return make_tuple(make_shared<get>(make_tuple(x, y)), pass_e1_t);
                         });
                 });
         }
 
         result_type operator() (const sptr<parser::array> & ast) const {
-            return insert_let(pass()(std::get<0>(ast->value)), [&] (auto & x) {
-                    auto && g_e2 = pass()(std::get<1>(ast->value));
+            return insert_let(pass(ctx)(std::get<0>(ast->value)), ctx, [&] (auto & x) {
+                    auto && g_e2 = pass(ctx)(std::get<1>(ast->value));
                     auto t2 = std::get<1>(g_e2);
-                    return insert_let(std::move(g_e2), [&] (auto & y) {
+                    return insert_let(std::move(g_e2), ctx, [&] (auto & y) {
                             return make_tuple(make_shared<array>(make_tuple(x, y)),
                                               make_shared<type::array>(std::move(t2)));
                         });
@@ -197,9 +199,9 @@ namespace {
                         type::type_t && typ = make_shared<type::tuple>(std::move(ts));
                         return make_tuple(std::move(val), std::move(typ));
                     } else {
-                        auto && pass_tmp = pass()(std::move(*t));
+                        auto && pass_tmp = pass(ctx)(std::move(*t));
                         auto pass_tmp_t = std::get<1>(pass_tmp);
-                        return insert_let(std::move(pass_tmp), [&] (auto & x) {
+                        return insert_let(std::move(pass_tmp), ctx, [&] (auto & x) {
                                 xs.push_back(x);
                                 ts.push_back(pass_tmp_t);
                                 return bind(bind, std::move(xs), std::move(ts), ++t);
@@ -212,17 +214,17 @@ namespace {
         result_type operator() (const sptr<parser::app> & ast) const {
             std::vector<sptr<identifier>> xs;
             auto args_end = std::get<1>(ast->value).end();
-            auto && g_e1 = pass()(std::get<0>(ast->value));
+            auto && g_e1 = pass(ctx)(std::get<0>(ast->value));
             auto g_e1_t = std::get<0>(std::get<sptr<type::function>>(unwrap(std::get<1>(g_e1)))->value);
-            return insert_let(std::move(g_e1), [&] (auto & f) {
+            return insert_let(std::move(g_e1), ctx, [&] (auto & f) {
                     auto bind = recursive([&] (auto bind, decltype(xs) && xs, decltype(args_end) t) {
                             if (t == args_end) {
                                 knormal::ast && val = make_shared<app>(make_tuple(f, std::move(xs)));
                                 type::type_t && typ = std::move(g_e1_t);
                                 return make_tuple(std::move(val), std::move(typ));
                             } else {
-                                auto && pass_tmp = pass()(std::move(*t));
-                                return insert_let(std::move(pass_tmp), [&] (auto & x) {
+                                auto && pass_tmp = pass(ctx)(std::move(*t));
+                                return insert_let(std::move(pass_tmp), ctx, [&] (auto & x) {
                                         xs.push_back(x);
                                         return bind(bind, std::move(xs), ++t);
                                     });
@@ -235,9 +237,11 @@ namespace {
     };
 
     struct global_pass {
-        using result_type = toplevel_t;
 
-        global_pass() { }
+        using result_type = toplevel_t;
+        context & ctx;
+
+        global_pass(context & c) : ctx(c) { }
 
         result_type operator() (const sptr<parser::external> & ast) {
             return ast;
@@ -245,14 +249,14 @@ namespace {
 
         result_type operator() (const sptr<parser::global> & ast) {
             auto && var = std::get<0>(ast->value);
-            auto && val = pass()(std::move(std::get<1>(ast->value)));
+            auto && val = pass(ctx)(std::move(std::get<1>(ast->value)));
             return make_shared<global>(make_tuple(std::move(var),
                                                   std::move(std::get<0>(val))));
         }
 
         result_type operator() (const sptr<parser::global_tuple> & ast) {
             std::vector<sptr<identifier>> xts;
-            auto && val = pass()(std::move(std::get<1>(ast->value)));
+            auto && val = pass(ctx)(std::move(std::get<1>(ast->value)));
             for (auto && i : std::get<0>(ast->value)) {
                 xts.emplace_back(i);
             }
@@ -266,7 +270,7 @@ namespace {
             for (auto & arg : std::get<1>(ast->value)) {
                 yts.emplace_back(std::move(arg));
             }
-            auto && body = pass()(std::move(std::get<2>(ast->value)));
+            auto && body = pass(ctx)(std::move(std::get<2>(ast->value)));
             return make_shared<global_rec>(make_tuple(name,
                                                       std::move(yts),
                                                       std::vector<std::shared_ptr<identifier>>{ },
@@ -275,19 +279,19 @@ namespace {
 
         template <typename T>
         result_type operator() (const T & ast) {
-            return std::get<0>(std::visit(pass(), ast));
+            return std::get<0>(std::visit(pass(ctx), ast));
         }
 
     };
 
 }
 
-mcc::knormal::module mcc::knormal::f(parser::module && mod) {
+mcc::knormal::module mcc::knormal::f(mcc::context & ctx, parser::module && mod) {
     mcc::knormal::module ret;
     ret.module_name = mod.module_name;
     ret.module_type = mod.module_type;
     for (auto && t : mod.value) {
-        ret.value.emplace_back(std::visit(global_pass(), t));
+        ret.value.emplace_back(std::visit(global_pass(ctx), t));
     }
     return ret;
 }

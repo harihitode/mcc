@@ -5,7 +5,7 @@
 
 namespace mcc {
     namespace knormal {
-        knormal::module f(parser::module && mod);
+        knormal::module f(context & ctx, parser::module && mod);
     }
 }
 

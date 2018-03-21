@@ -170,7 +170,7 @@ namespace {
 
 }
 
-parser::module idrel::f(parser::module && mod) {
+parser::module idrel::f(context & ctx, parser::module && mod) {
     env_t env;
     env_t extenv;
     std::vector<mcc::parser::toplevel_t> ret;

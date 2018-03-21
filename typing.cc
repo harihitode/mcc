@@ -548,7 +548,7 @@ namespace {
 
 }
 
-parser::module type::f(parser::module && mod) {
+parser::module type::f(context & ctx, parser::module && mod) {
     env_t env;
     type_t module_type;
     for (auto && top : mod.value) {

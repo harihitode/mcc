@@ -7,10 +7,10 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/ValueSymbolTable.h>
 #include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/LLVMContext.h>
 
 using llvm::Value;
 using llvm::Function;
@@ -24,7 +24,6 @@ using namespace mcc::operand;
 namespace {
     using namespace mcc;
     using mcc::type::unwrap;
-    static llvm::LLVMContext context;
 
     template <typename Op>
     Value * binary_op(IRBuilder<> * b, Value * lhs, Value * rhs) {
@@ -81,11 +80,11 @@ namespace {
 
     Type * convert_type(const type::type_t & t) {
         if (std::get_if<sptr<type::boolean>>(&t)) { // boolean should be removed in k-normalization
-            return llvm::Type::getInt1Ty(context);
+            return llvm::Type::getInt1Ty(lctx);
         } else if (std::get_if<sptr<type::integer>>(&t)) {
-            return llvm::Type::getInt32Ty(context);
+            return llvm::Type::getInt32Ty(lctx);
         } else if (std::get_if<sptr<type::floating_point>>(&t)) {
-            return llvm::Type::getFloatTy(context);
+            return llvm::Type::getFloatTy(lctx);
         } else if (std::get_if<sptr<type::array>>(&t)) {
             auto elem_t = std::get<sptr<type::array>>(t);
             return llvm::PointerType::getUnqual(convert_type(elem_t->value));
@@ -93,7 +92,7 @@ namespace {
             auto tuple = std::get<sptr<type::tuple>>(t);
             std::vector<Type *> ts;
             std::transform(tuple->value.begin(), tuple->value.end(), std::back_inserter(ts), convert_type);
-            auto struct_t = llvm::StructType::get(context, ts);
+            auto struct_t = llvm::StructType::get(lctx, ts);
             return llvm::PointerType::getUnqual(struct_t);
         } else if (std::get_if<sptr<type::function>>(&t)) {
             auto function_t = std::get<sptr<type::function>>(t);
@@ -105,7 +104,7 @@ namespace {
                 // +1 argument for closure
                 // closure type is void*, needed to be casted
                 // closure_type is actually ptr to struct {(ptr to function (closure_address, arg1, arg2, ...)), (ptr of fv)}
-                params_tt.push_back(llvm::PointerType::getUnqual(llvm::Type::getInt32Ty(context)));
+                params_tt.push_back(llvm::PointerType::getUnqual(llvm::Type::getInt32Ty(lctx)));
             }
             std::transform(params_t.begin(), params_t.end(), std::back_inserter(params_tt), [] (auto & arg) {
                     return convert_type(arg);
@@ -120,7 +119,7 @@ namespace {
             auto variable_t = std::get<sptr<type::variable>>(t);
             return convert_type(unwrap(t));
         } else {
-            return llvm::Type::getVoidTy(context);
+            return llvm::Type::getVoidTy(lctx);
         }
     }
 
@@ -137,16 +136,16 @@ namespace {
             return std::visit(pass(builder, module, function), e);
         }
         result_type operator() (const sptr<closure::unit> & e) {
-            return llvm::ConstantTokenNone::get(context);
+            return llvm::ConstantTokenNone::get(lctx);
         }
         result_type operator() (const sptr<closure::integer> & e) {
-            return llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), e->value);
+            return llvm::ConstantInt::get(llvm::Type::getInt32Ty(lctx), e->value);
         }
         result_type operator() (const sptr<closure::boolean> & e) {
-            return llvm::ConstantInt::get(llvm::Type::getInt1Ty(context), e->value);
+            return llvm::ConstantInt::get(llvm::Type::getInt1Ty(lctx), e->value);
         }
         result_type operator() (const sptr<closure::floating_point> & e) {
-            return llvm::ConstantFP::get(llvm::Type::getFloatTy(context), e->value);
+            return llvm::ConstantFP::get(llvm::Type::getFloatTy(lctx), e->value);
         }
         result_type operator() (const sptr<closure::unary<op_fneg>> & e) {
             Value * rhs = pass(builder, module, function)(e->value);
@@ -182,9 +181,9 @@ namespace {
         }
         result_type operator() (const sptr<closure::branch> & e) {
             Value * cond = pass(builder, module, function)(std::get<0>(e->value));
-            BasicBlock * then_bb = llvm::BasicBlock::Create(context, "then");
-            BasicBlock * else_bb = llvm::BasicBlock::Create(context, "else");
-            BasicBlock * merge_bb = llvm::BasicBlock::Create(context, "merge");
+            BasicBlock * then_bb = llvm::BasicBlock::Create(lctx, "then");
+            BasicBlock * else_bb = llvm::BasicBlock::Create(lctx, "else");
+            BasicBlock * merge_bb = llvm::BasicBlock::Create(lctx, "merge");
             builder->CreateCondBr(cond, then_bb, else_bb);
 
             // then block
@@ -223,19 +222,19 @@ namespace {
             std::vector<Type *> ts;
             std::transform(e->value.begin(), e->value.end(), std::back_inserter(vs), pass(builder, module, function));
             std::transform(vs.begin(), vs.end(), std::back_inserter(ts), [] (auto & v) { return v->getType(); });
-            Type * tuple_type = llvm::StructType::get(context, ts);
+            Type * tuple_type = llvm::StructType::get(lctx, ts);
             llvm::Constant * tuple_size = llvm::ConstantExpr::getSizeOf(tuple_type);
-            tuple_size = llvm::ConstantExpr::getTruncOrBitCast(tuple_size, llvm::Type::getInt32Ty(context));
+            tuple_size = llvm::ConstantExpr::getTruncOrBitCast(tuple_size, llvm::Type::getInt32Ty(lctx));
             BasicBlock * curr_bb = builder->GetInsertBlock();
             llvm::Instruction * v = llvm::CallInst::CreateMalloc(curr_bb,
-                                                                 llvm::Type::getInt32Ty(context),
+                                                                 llvm::Type::getInt32Ty(lctx),
                                                                  tuple_type,
                                                                  tuple_size, nullptr, nullptr, "var_tuple");
             curr_bb->getInstList().push_back(v);
             // store values
             for (size_t i = 0; i < vs.size(); i++) {
-                std::vector<Value *> idx = {llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0),
-                                            llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), i)};
+                std::vector<Value *> idx = {llvm::ConstantInt::get(llvm::Type::getInt32Ty(lctx), 0),
+                                            llvm::ConstantInt::get(llvm::Type::getInt32Ty(lctx), i)};
                 llvm::Value * ptr = builder->CreateGEP(v, idx, "ptr_tmp");
                 builder->CreateStore(vs[i], ptr);
             }
@@ -249,7 +248,7 @@ namespace {
             auto fun_typ = std::get<std::shared_ptr<type::function>>(unwrap(fun_type));
             if (fun_typ->is_closure) {
                 // push closure arguments
-                auto cls_ptr_raw = builder->CreatePointerCast(fun_ptr, llvm::PointerType::getUnqual(llvm::Type::getInt32Ty(context)));
+                auto cls_ptr_raw = builder->CreatePointerCast(fun_ptr, llvm::PointerType::getUnqual(llvm::Type::getInt32Ty(lctx)));
                 args.push_back(cls_ptr_raw);
                 fun_ptr = builder->CreateLoad(fun_ptr, "fun_tmp");
             }
@@ -279,13 +278,13 @@ namespace {
             // for function address
             vs.push_front(module->getFunction(std::get<0>(ident->value)));
             // make closure struct
-            auto cls_type = llvm::StructType::get(context, ts);
+            auto cls_type = llvm::StructType::get(lctx, ts);
             llvm::Constant * cls_size = llvm::ConstantExpr::getSizeOf(cls_type);
-            cls_size = llvm::ConstantExpr::getTruncOrBitCast(cls_size, llvm::Type::getInt32Ty(context));
+            cls_size = llvm::ConstantExpr::getTruncOrBitCast(cls_size, llvm::Type::getInt32Ty(lctx));
 
             BasicBlock * curr_bb = builder->GetInsertBlock();
             llvm::Instruction * v = llvm::CallInst::CreateMalloc(curr_bb,
-                                                                 llvm::Type::getInt32Ty(context),
+                                                                 llvm::Type::getInt32Ty(lctx),
                                                                  cls_type,
                                                                  cls_size, nullptr, nullptr, "var_cls");
             curr_bb->getInstList().push_back(v);
@@ -293,8 +292,8 @@ namespace {
             {
                 int i = 0;
                 std::for_each(vs.begin(), vs.end(), [this, &v, &i] (auto & n) {
-                        std::vector<Value *> idx = {llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0),
-                                                    llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), i++)};
+                        std::vector<Value *> idx = {llvm::ConstantInt::get(llvm::Type::getInt32Ty(lctx), 0),
+                                                    llvm::ConstantInt::get(llvm::Type::getInt32Ty(lctx), i++)};
                         llvm::Value * ptr = builder->CreateGEP(v, idx, "ptr_tmp");
                         builder->CreateStore(n, ptr);
                     });
@@ -324,26 +323,26 @@ namespace {
             Value * init = pass(builder, module, function)(std::get<1>(e->value));
             Type * elem_type = init->getType();
             llvm::Constant * elem_size = llvm::ConstantExpr::getSizeOf(elem_type);
-            elem_size = llvm::ConstantExpr::getTruncOrBitCast(elem_size, llvm::Type::getInt32Ty(context));
+            elem_size = llvm::ConstantExpr::getTruncOrBitCast(elem_size, llvm::Type::getInt32Ty(lctx));
 
             llvm::Instruction * v = llvm::CallInst::CreateMalloc(builder->GetInsertBlock(),
-                                                                 llvm::Type::getInt32Ty(context),
+                                                                 llvm::Type::getInt32Ty(lctx),
                                                                  elem_type,
                                                                  elem_size, num, nullptr, "var_array");
             BasicBlock * curr_bb = builder->GetInsertBlock();
             curr_bb->getInstList().push_back(v);
 
-            BasicBlock * cond_bb = llvm::BasicBlock::Create(context, "cond");
-            BasicBlock * body_bb = llvm::BasicBlock::Create(context, "body");
-            BasicBlock * done_bb = llvm::BasicBlock::Create(context, "done");
+            BasicBlock * cond_bb = llvm::BasicBlock::Create(lctx, "cond");
+            BasicBlock * body_bb = llvm::BasicBlock::Create(lctx, "body");
+            BasicBlock * done_bb = llvm::BasicBlock::Create(lctx, "done");
 
             builder->CreateBr(cond_bb);
             function->getBasicBlockList().push_back(cond_bb);
             builder->SetInsertPoint(cond_bb);
 
-            auto counter = builder->CreatePHI(llvm::Type::getInt32Ty(context), 2, "iftmp");
-            counter->addIncoming(llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0), curr_bb);
-            counter->addIncoming(builder->CreateAdd(counter, llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 1)), body_bb);
+            auto counter = builder->CreatePHI(llvm::Type::getInt32Ty(lctx), 2, "iftmp");
+            counter->addIncoming(llvm::ConstantInt::get(llvm::Type::getInt32Ty(lctx), 0), curr_bb);
+            counter->addIncoming(builder->CreateAdd(counter, llvm::ConstantInt::get(llvm::Type::getInt32Ty(lctx), 1)), body_bb);
             auto cond = builder->CreateICmpSLT(counter, num);
             builder->CreateCondBr(cond, body_bb, done_bb);
             // initialization block
@@ -367,8 +366,8 @@ namespace {
                 std::for_each(std::get<0>(e->value).begin(), std::get<0>(e->value).end(), [this, &index, &elems_ts_itr, tuple] (auto & i) {
                         Type * ty = *(elems_ts_itr++);
                         auto && arg = builder->CreateAlloca(ty, 0, std::get<0>(i->value));
-                        std::vector<Value *> t_index = {llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0),
-                                                        llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), index++)};
+                        std::vector<Value *> t_index = {llvm::ConstantInt::get(llvm::Type::getInt32Ty(lctx), 0),
+                                                        llvm::ConstantInt::get(llvm::Type::getInt32Ty(lctx), index++)};
                         Value * ptr = builder->CreateGEP(tuple, t_index, "ptr_tmp");
                         Value * var = builder->CreateLoad(ptr, "var_tmp");
                         builder->CreateStore(var, arg);
@@ -435,7 +434,7 @@ namespace {
         std::for_each(arg_names.begin(), arg_names.end(), [&arg_itr] (auto & n) {
                 (arg_itr++)->setName(n + "_arg");
             });
-        auto bblock = llvm::BasicBlock::Create(context, "entry", func);
+        auto bblock = llvm::BasicBlock::Create(lctx, "entry", func);
         builder->SetInsertPoint(bblock);
         // printf("argument_parameter num: %lu\n", std::get<1>(f).size());
         // printf("function_parameter num: %u\n", func_type->getNumParams());
@@ -460,7 +459,7 @@ namespace {
             std::transform(std::get<2>(f->value).begin(), std::get<2>(f->value).end(), std::back_inserter(ts), [] (auto && fv_name) {
                     return convert_type(std::get<1>(fv_name->value));
                 });
-            Type * closure_ty = llvm::PointerType::getUnqual(llvm::StructType::get(context, ts));
+            Type * closure_ty = llvm::PointerType::getUnqual(llvm::StructType::get(lctx, ts));
             Type * function_ptr_ptr = llvm::PointerType::getUnqual(llvm::PointerType::getUnqual(func_type));
             auto && closure = builder->CreatePointerCast(vs_table->lookup("closure_arg"), closure_ty, "closure");
             auto && closure_stb_val = builder->CreatePointerCast(vs_table->lookup("closure_arg"), function_ptr_ptr, "clsstb");
@@ -474,8 +473,8 @@ namespace {
                         // printf("fv_load & store: %s\n", fv_name.first.c_str());
                         llvm::Type * t = convert_type(fv_type);
                         llvm::Value * fv_alloc = builder->CreateAlloca(t, 0, fv_name);
-                        std::vector<Value *> idx = {llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0),
-                                                    llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), index++)};
+                        std::vector<Value *> idx = {llvm::ConstantInt::get(llvm::Type::getInt32Ty(lctx), 0),
+                                                    llvm::ConstantInt::get(llvm::Type::getInt32Ty(lctx), index++)};
                         auto && ptr = builder->CreateGEP(closure, idx, "ptr_tmp");
                         auto && fv_load = builder->CreateLoad(ptr, "fv_load");
                         builder->CreateStore(fv_load, fv_alloc);
@@ -584,8 +583,8 @@ struct main_routine_pass {
         {
             size_t index = 0;
             std::for_each(std::get<0>(g->value).begin(), std::get<0>(g->value).end(), [this, &index, &ret, tuple] (auto & i) {
-                    std::vector<Value *> t_index = {llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0),
-                                                    llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), index++)};
+                    std::vector<Value *> t_index = {llvm::ConstantInt::get(llvm::Type::getInt32Ty(lctx), 0),
+                                                    llvm::ConstantInt::get(llvm::Type::getInt32Ty(lctx), index++)};
                     Value * ptr = builder->CreateGEP(tuple, t_index, "ptr_tmp");
                     Value * var = builder->CreateLoad(ptr, "var_tmp");
                     ret = builder->CreateStore(var, module->getGlobalVariable(std::get<0>(i->value)));
@@ -597,8 +596,8 @@ struct main_routine_pass {
 };
 
 llvm::Module * mcc::codegen::f(const mcc::closure::module & mod) {
-    IRBuilder<> * builder = new llvm::IRBuilder<>(context);
-    Module * module = new llvm::Module(mod.module_name, context);
+    IRBuilder<> * builder = new llvm::IRBuilder<>(lctx);
+    Module * module = new llvm::Module(mod.module_name, lctx);
 
     // toplevel function prototype
     std::for_each(mod.value.rbegin(), mod.value.rend(), [module] (auto & t) {
@@ -613,7 +612,7 @@ llvm::Module * mcc::codegen::f(const mcc::closure::module & mod) {
     auto && main_type = std::make_shared<type::function>(std::make_tuple(mod.module_type, std::vector<type::type_t>{ }), false);
     auto main_ident = std::make_shared<closure::identifier>("main", std::move(main_type));
     auto main_routine = create_function_prototype(main_ident, module);
-    auto bblock = llvm::BasicBlock::Create(context, "entry", main_routine);
+    auto bblock = llvm::BasicBlock::Create(lctx, "entry", main_routine);
     builder->SetInsertPoint(bblock);
     // main routine pass
     Value * retval = nullptr;

@@ -5,7 +5,7 @@
 
 namespace mcc {
     namespace closure {
-        closure::module f(knormal::module && mod);
+        closure::module f(context & ctx, knormal::module && mod);
     }
 }
 

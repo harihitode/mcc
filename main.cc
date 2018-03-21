@@ -29,26 +29,27 @@ int main(int argc, char * argv[]) {
         return 0;
     }
 
+    mcc::context ctx;
     std::experimental::filesystem::path filepath(argv[1]);
 
     auto start = std::chrono::system_clock::now();
-    mcc::parser::module mod = mcc::parser::f(filepath.string());
-    mod = mcc::idrel::f(std::move(mod));
+    mcc::parser::module mod = mcc::parser::f(ctx, filepath.string());
+    mod = mcc::idrel::f(ctx, std::move(mod));
     auto parsed = std::chrono::system_clock::now();
-    mod = mcc::type::f(std::move(mod));
+    mod = mcc::type::f(ctx, std::move(mod));
 
     auto typed = std::chrono::system_clock::now();
 
-    auto mod_knormal = mcc::knormal::f(std::move(mod));
+    auto mod_knormal = mcc::knormal::f(ctx, std::move(mod));
     auto knormalized = std::chrono::system_clock::now();
 
-    mod_knormal = mcc::alpha::f(std::move(mod_knormal));
+    mod_knormal = mcc::alpha::f(ctx, std::move(mod_knormal));
     auto optimized = std::chrono::system_clock::now();
 
-    auto ast_closured = mcc::closure::f(std::move(mod_knormal));
+    auto ast_closured = mcc::closure::f(ctx, std::move(mod_knormal));
     auto closured = std::chrono::system_clock::now();
 
-    llvm::Module * module = mcc::codegen::f(ast_closured);
+    llvm::Module * module = mcc::codegen::f(ctx, ast_closured);
     auto finish = std::chrono::system_clock::now();
 
     llvm::legacy::PassManager pm;

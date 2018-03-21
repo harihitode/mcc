@@ -8,6 +8,8 @@
 
 namespace {
 
+    class mcc_context_tag;
+
     namespace x3 = boost::spirit::x3;
     using namespace mcc;
     using namespace mcc::parser;
@@ -209,16 +211,16 @@ namespace {
                                  confix('(', ')')[prec_let]
                                  );
     auto const gram_integer_def = uint_ [([] (auto && ctx) {
-                _val(ctx) = value::get_const_integer(_attr(ctx));
+                _val(ctx) = value::get_const_integer(x3::get<mcc_context_tag>(ctx), _attr(ctx));
             })];
     auto const gram_floating_point_def = real_ [([] (auto && ctx) {
-                _val(ctx) = value::get_const_floating_point(_attr(ctx));
+                _val(ctx) = value::get_const_floating_point(x3::get<mcc_context_tag>(ctx), _attr(ctx));
             })];
     auto const gram_boolean_def = bool_ [([] (auto && ctx) {
-                _val(ctx) = value::get_const_boolean(_attr(ctx));
+                _val(ctx) = value::get_const_boolean(x3::get<mcc_context_tag>(ctx), _attr(ctx));
             })];
     auto const gram_unit_def = lexeme[lit("()")] [([] (auto && ctx) {
-                _val(ctx) = value::get_const_unit();
+                _val(ctx) = value::get_const_unit(x3::get<mcc_context_tag>(ctx));
             })];
     // want to use distinct directive of spirit x3 (currently unavailable)...
     auto const distinct_keywords = lexeme[keywords >> !(alnum | char_('_'))];
@@ -226,7 +228,7 @@ namespace {
                 std::string value(std::begin(_attr(ctx)), std::end(_attr(ctx)));
                 _val(ctx) = make_shared<identifier>(value);
             })] | (lit('_')) [([] (auto && ctx) {
-                _val(ctx) = make_shared<identifier>(id::gentmp(type::get_unit()), type::get_unit());
+                _val(ctx) = make_shared<identifier>(id::gentmp(x3::get<mcc_context_tag>(ctx), type::get_unit()), type::get_unit());
             })];
     auto const gram_branch_def = (lit("if") >> prec_if >> lit("then") >> then_else >> lit("else") >> then_else) [([] (auto && ctx) {
                 _val(ctx) = make_shared<branch>(make_tuple(std::move(at_c<0>(_attr(ctx))),
@@ -245,8 +247,8 @@ namespace {
                     std::shared_ptr<let> ret;
                     std::function<ast (ast &)> f = [] (ast & e) { return e; };
                     for (auto && i : at_c<1>(_attr(ctx))) {
-                        f = [f, i] (ast & e) {
-                            return make_shared<let>(make_tuple(make_shared<identifier>(id::gentmp(type::get_unit()), type::get_unit()),
+                        f = [f, i, &ctx] (ast & e) {
+                            return make_shared<let>(make_tuple(make_shared<identifier>(id::gentmp(x3::get<mcc_context_tag>(ctx), type::get_unit()), type::get_unit()),
                                                                f(e),
                                                                std::move(i)));
                         };
@@ -405,10 +407,15 @@ namespace {
 namespace mcc {
     namespace parser {
 
-        bool parse(std::string::const_iterator & bgn,
+        bool parse(context & ctx,
+                   std::string::const_iterator & bgn,
                    std::string::const_iterator & end,
                    std::vector<toplevel_t> & asts) {
-            bool r = phrase_parse(bgn, end, toplevel, (comment | space), asts);
+
+            using boost::spirit::x3::with;
+            auto const prs = with<mcc_context_tag>(std::ref(ctx))[toplevel];
+
+            bool r = phrase_parse(bgn, end, prs, (comment | space), asts);
             if (bgn != end) {
                 int i = 0;
                 for (i = 0; i < 20 && bgn != end; i++, bgn++) {
@@ -419,7 +426,7 @@ namespace mcc {
             return (r && bgn == end);
         };
 
-        module f(const std::string & filepath) {
+        module f(context & ctx, const std::string & filepath) {
             module ret;
             std::ifstream in(filepath, std::ios_base::in);
             ret.module_name = filepath;
@@ -435,7 +442,7 @@ namespace mcc {
                 std::string::const_iterator bgn = storage.begin();
                 std::string::const_iterator end = storage.end();
 
-                bool r = mcc::parser::parse(bgn, end, ret.value);
+                bool r = mcc::parser::parse(ctx, bgn, end, ret.value);
                 if (!r) {
                     std::cerr << "Error: Could not parse!" << std::endl;
                 }

@@ -5,7 +5,7 @@
 
 namespace mcc {
     namespace alpha {
-        knormal::module f(knormal::module && mod);
+        knormal::module f(context & ctx, knormal::module && mod);
     }
 }
 
