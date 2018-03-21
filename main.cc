@@ -30,6 +30,7 @@ int main(int argc, char * argv[]) {
     }
 
     mcc::context ctx;
+    llvm::LLVMContext lctx;
     std::experimental::filesystem::path filepath(argv[1]);
 
     auto start = std::chrono::system_clock::now();
@@ -49,7 +50,7 @@ int main(int argc, char * argv[]) {
     auto ast_closured = mcc::closure::f(ctx, std::move(mod_knormal));
     auto closured = std::chrono::system_clock::now();
 
-    llvm::Module * module = mcc::codegen::f(ctx, ast_closured);
+    llvm::Module * module = mcc::codegen::f(lctx, ctx, ast_closured);
     auto finish = std::chrono::system_clock::now();
 
     llvm::legacy::PassManager pm;
