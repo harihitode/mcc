@@ -15,12 +15,16 @@
 
 #include <llvm/IR/Module.h>
 #include <llvm/IR/LegacyPassManager.h>
+#include <llvm/IR/IRPrintingPasses.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/IPO.h>
-#include <llvm/IR/IRPrintingPasses.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Host.h>
 #include <llvm/Support/raw_ostream.h>
+#include <llvm/Support/TargetRegistry.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Target/TargetMachine.h>
+#include <llvm/Target/TargetOptions.h>
 
 int main(int argc, char * argv[]) {
 
@@ -32,6 +36,8 @@ int main(int argc, char * argv[]) {
     mcc::context ctx;
     llvm::LLVMContext lctx;
     std::experimental::filesystem::path filepath(argv[1]);
+
+    bool gen_ir = false;
 
     auto start = std::chrono::system_clock::now();
     mcc::parser::module mod = mcc::parser::f(ctx, filepath.string());
@@ -55,7 +61,9 @@ int main(int argc, char * argv[]) {
 
     llvm::legacy::PassManager pm;
     std::error_code ec;
-    llvm::raw_fd_ostream ofile(filepath.replace_extension(".ll").filename().c_str(), ec, llvm::sys::fs::F_RW);
+
+    std::string ext = gen_ir ? ".ll" : ".o";
+    llvm::raw_fd_ostream ofile(filepath.replace_extension(ext).filename().c_str(), ec, llvm::sys::fs::F_RW);
     pm.add(llvm::createPromoteMemoryToRegisterPass());
     pm.add(llvm::createIPSCCPPass());
     pm.add(llvm::createFunctionInliningPass());
@@ -64,7 +72,29 @@ int main(int argc, char * argv[]) {
     pm.add(llvm::createLICMPass());
     pm.add(llvm::createNewGVNPass());
     pm.add(llvm::createGlobalDCEPass());
-    pm.add(llvm::createPrintModulePass(ofile));
+    if (gen_ir) {
+        pm.add(llvm::createPrintModulePass(ofile));
+    } else {
+        llvm::InitializeAllTargetInfos();
+        llvm::InitializeAllTargets();
+        llvm::InitializeAllTargetMCs();
+        llvm::InitializeAllAsmParsers();
+        llvm::InitializeAllAsmPrinters();
+
+        std::string err;
+        std::string tg_triple = llvm::sys::getDefaultTargetTriple();
+
+        llvm::TargetOptions opt;
+        auto rm = llvm::Optional<llvm::Reloc::Model>();
+
+        auto tg = llvm::TargetRegistry::lookupTarget(tg_triple, err);
+        auto tg_machine = tg->createTargetMachine(tg_triple, "generic", "", opt, rm);
+
+        module->setTargetTriple(tg_triple);
+        module->setDataLayout(tg_machine->createDataLayout());
+
+        tg_machine->addPassesToEmitFile(pm, ofile, llvm::TargetMachine::CGFT_ObjectFile);
+    }
     pm.run(*module);
     ofile.close();
 
