@@ -1,5 +1,5 @@
-CC = clang
-CXX = clang++
+CC = /usr/bin/clang
+CXX = /usr/bin/clang++
 LLVMDIR = ../llvm/build
 TBLGEN = $(LLVMDIR)/bin/llvm-tblgen
 CXXFLAGS = -std=c++1z `$(LLVMDIR)/bin/llvm-config --cflags` -resource-dir ~/ -fvisibility=hidden -O3
