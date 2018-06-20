@@ -37,7 +37,7 @@ int main(int argc, char * argv[]) {
     llvm::LLVMContext lctx;
     std::experimental::filesystem::path filepath(argv[1]);
 
-    bool gen_ir = false;
+    bool gen_ir = true;
 
     auto start = std::chrono::system_clock::now();
     mcc::parser::module mod = mcc::parser::f(ctx, filepath.string());
@@ -62,7 +62,7 @@ int main(int argc, char * argv[]) {
     llvm::legacy::PassManager pm;
     std::error_code ec;
 
-    std::string ext = gen_ir ? ".ll" : ".o";
+    std::string ext = gen_ir ? ".ll" : ".s";
     llvm::raw_fd_ostream ofile(filepath.replace_extension(ext).filename().c_str(), ec, llvm::sys::fs::F_RW);
     pm.add(llvm::createPromoteMemoryToRegisterPass());
     pm.add(llvm::createIPSCCPPass());
@@ -80,17 +80,23 @@ int main(int argc, char * argv[]) {
         llvm::InitializeAllTargetMCs();
         llvm::InitializeAllAsmParsers();
         llvm::InitializeAllAsmPrinters();
+        llvm::InitializeAllDisassemblers();
 
         std::string err;
-        std::string tg_triple = llvm::sys::getDefaultTargetTriple();
+        llvm::Triple tg_triple("sample", "hitode", "linux");
 
         llvm::TargetOptions opt;
         auto rm = llvm::Optional<llvm::Reloc::Model>();
 
-        auto tg = llvm::TargetRegistry::lookupTarget(tg_triple, err);
-        auto tg_machine = tg->createTargetMachine(tg_triple, "generic", "", opt, rm);
+        auto tg = llvm::TargetRegistry::lookupTarget("sample", tg_triple, err);
+        std::cerr << "triple: " << tg_triple.str() << std::endl;
 
-        module->setTargetTriple(tg_triple);
+        if (!tg) {
+            assert(false);
+        }
+        auto tg_machine = tg->createTargetMachine(tg_triple.str(), "sample", "", opt, rm);
+
+        module->setTargetTriple(tg_triple.str());
         module->setDataLayout(tg_machine->createDataLayout());
 
         tg_machine->addPassesToEmitFile(pm, ofile, llvm::TargetMachine::CGFT_ObjectFile);
