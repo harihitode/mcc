@@ -1,3 +1,5 @@
+#include <cassert>
+
 #include "ast.h"
 #include "typing.h"
 #include "printer.h"
