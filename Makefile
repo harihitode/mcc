@@ -1,16 +1,23 @@
-CC = /usr/bin/clang
-CXX = /usr/bin/clang++
-LLVMDIR = ../llvm/build
-TBLGEN = $(LLVMDIR)/bin/llvm-tblgen
-CXXFLAGS = -std=c++1z `$(LLVMDIR)/bin/llvm-config --cflags` -resource-dir ~/ -fvisibility=hidden -O3
-LIBS = `$(LLVMDIR)/bin/llvm-config --libs --system-libs` -lc++experimental
-OPTIONS = `$(LLVMDIR)/bin/llvm-config --cflags --ldflags`
-TFLAGS = -I `$(LLVMDIR)/bin/llvm-config --includedir`
-OBJS = main.o id.o idrel.o typing.o knormal.o alpha.o closure.o codegen.o
+TARGET=mcc
+CC=gcc
+CXX=g++
+LLVMDIR?=/usr/local/opt/llvm
+SRCS=$(wildcard *.cc)
+HDRS=$(wildcard *.h)
+OBJS=$(SRCS:.cc=.o)
+DEPS=$(SRCS:.cc=.d)
+LIBS=$(shell $(LLVMDIR)/bin/llvm-config --libs --system-libs) -lc++experimental
+CXXFLAGS=-std=c++17 -MMD $(shell $(LLVMDIR)/bin/llvm-config --cflags)
+LDFLAGS=$(shell $(LLVMDIR)/bin/llvm-config --ldflags)
 
-normal: $(OBJS) printer.h ast.h typing.h knormal.h alpha.h closure.h
-	$(CXX) $(CXXFLAGS) $(OPTIONS) $(LIBS) $(OBJS) parser.o -o mcc
-all: $(OBJS) printer.h ast.h typing.h parser.o
-	$(CXX) $(CXXFLAGS) $(OPTIONS) $(LIBS) $(OBJS) parser.o -o mcc
+.PHONY: all clean
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBS) $(OBJS) -o $@
+
 clean:
-	rm -f *.o mcc
+	$(RM) -f $(OBJS) $(DEPS) $(TARGET)
+
+-include $(DEPS)
