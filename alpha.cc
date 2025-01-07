@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "alpha.h"
 
 using namespace mcc;

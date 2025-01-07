@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <cassert>
 #include <string>
 #include <variant>
 #include "ast.h"

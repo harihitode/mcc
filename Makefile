@@ -1,14 +1,15 @@
 TARGET=mcc
 CC=gcc
 CXX=g++
-LLVMDIR?=/usr/local/opt/llvm
+LLVM_CONFIG?=/usr/local/opt/llvm/bin/llvm-config
+LLVM_VERSION=$(shell $(LLVM_CONFIG) --version | cut -f 1 -d .)
 SRCS=$(wildcard *.cc)
 HDRS=$(wildcard *.h)
 OBJS=$(SRCS:.cc=.o)
 DEPS=$(SRCS:.cc=.d)
-LIBS=$(shell $(LLVMDIR)/bin/llvm-config --libs --system-libs) -lc++experimental
-CXXFLAGS=-std=c++17 -MMD $(shell $(LLVMDIR)/bin/llvm-config --cflags)
-LDFLAGS=$(shell $(LLVMDIR)/bin/llvm-config --ldflags)
+LIBS=$(shell $(LLVM_CONFIG) --libs --system-libs)
+CXXFLAGS=-std=c++17 -MMD $(shell $(LLVM_CONFIG) --cflags) -DMCC_LLVM_VERSION=$(LLVM_VERSION)
+LDFLAGS=$(shell $(LLVM_CONFIG) --ldflags)
 
 .PHONY: all clean
 

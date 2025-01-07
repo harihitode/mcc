@@ -5,6 +5,7 @@
 #include <vector>
 #include <tuple>
 #include <variant>
+#include <memory>
 #include <unordered_map>
 #include <unordered_set>
 
